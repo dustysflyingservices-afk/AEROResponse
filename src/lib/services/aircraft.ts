@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { aircraftSchema, type AircraftInput } from "@/lib/validation/aircraft";
+import { aircraftSchema, type AircraftFormInput } from "@/lib/validation/aircraft";
 import type { Aircraft, AircraftCategory, Pilot } from "@prisma/client";
 
 export type AircraftWithPilot = Aircraft & { pilot: Pilot };
@@ -22,7 +22,7 @@ function toNullable(value: string | undefined): string | null {
   return value && value.length > 0 ? value : null;
 }
 
-export async function createAircraft(input: AircraftInput): Promise<Aircraft> {
+export async function createAircraft(input: AircraftFormInput): Promise<Aircraft> {
   const data = aircraftSchema.parse(input);
   return prisma.aircraft.create({
     data: {
@@ -38,7 +38,7 @@ export async function createAircraft(input: AircraftInput): Promise<Aircraft> {
   });
 }
 
-export async function updateAircraft(id: string, input: AircraftInput): Promise<Aircraft> {
+export async function updateAircraft(id: string, input: AircraftFormInput): Promise<Aircraft> {
   const data = aircraftSchema.parse(input);
   return prisma.aircraft.update({
     where: { id },

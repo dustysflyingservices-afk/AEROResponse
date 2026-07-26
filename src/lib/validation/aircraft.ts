@@ -29,3 +29,4 @@ export const aircraftSchema = z.object({
 });
 
 export type AircraftInput = z.infer<typeof aircraftSchema>;
+export type AircraftFormInput = z.input<typeof aircraftSchema>;
