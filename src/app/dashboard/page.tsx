@@ -11,7 +11,7 @@ const ACTIVE_STATUSES = ["OPEN", "ASSIGNED", "IN_PROGRESS"] as const;
 export default async function DashboardPage(): Promise<JSX.Element> {
   const [activeMissions, pilotCount, aircraftCount, organizationCount] = await Promise.all([
     prisma.mission.findMany({
-      where: { status: { in: ACTIVE_STATUSES } },
+      where: { status: { in: [...ACTIVE_STATUSES] } },
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       take: 10,
     }),
