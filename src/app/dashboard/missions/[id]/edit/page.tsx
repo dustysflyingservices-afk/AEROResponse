@@ -3,6 +3,7 @@ import { getMission } from "@/lib/services/missions";
 import { listOrganizations } from "@/lib/services/organizations";
 import { updateMissionAction } from "@/app/dashboard/missions/actions";
 import { MissionForm } from "@/components/missions/mission-form";
+import { MatchingPanel } from "@/components/missions/matching-panel";
 
 export default async function EditMissionPage({
   params,
@@ -26,6 +27,7 @@ export default async function EditMissionPage({
       <div className="mt-6">
         <MissionForm mission={mission} organizationOptions={organizations} action={action} />
       </div>
+      <MatchingPanel mission={mission} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ export const pilotSchema = z.object({
     .optional()
     .or(z.literal("")),
   phone: z.string().trim().optional().or(z.literal("")),
+  qualifications: z.string().trim().optional().or(z.literal("")),
   notes: z.string().trim().optional().or(z.literal("")),
 });
 

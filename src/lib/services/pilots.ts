@@ -36,6 +36,7 @@ export async function createPilot(input: PilotInput): Promise<Pilot> {
       name: data.name,
       email: toNullable(data.email)?.toLowerCase() ?? null,
       phone: toNullable(data.phone),
+      qualifications: toNullable(data.qualifications),
       notes: toNullable(data.notes),
     },
   });
@@ -49,6 +50,7 @@ export async function updatePilot(id: string, input: PilotInput): Promise<Pilot>
       name: data.name,
       email: toNullable(data.email)?.toLowerCase() ?? null,
       phone: toNullable(data.phone),
+      qualifications: toNullable(data.qualifications),
       notes: toNullable(data.notes),
     },
   });

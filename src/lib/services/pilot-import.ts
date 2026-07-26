@@ -23,6 +23,7 @@ interface NormalizedRow {
   pilotName: string;
   email: string | null;
   phone: string | null;
+  qualifications: string | null;
   nNumber: string | null;
   makeModel: string | null;
   homeBaseAirport: string | null;
@@ -45,6 +46,7 @@ const HEADER_ALIASES: Record<string, string[]> = {
     "makemodeltype",
   ],
   homeBaseAirport: ["homebaseairport", "homebase", "baseairport", "base", "airport"],
+  qualifications: ["qualifications", "ratings", "certifications", "quals"],
 };
 
 function normalizeHeaderKey(header: string): string {
@@ -109,6 +111,7 @@ function normalizeRows(rows: RosterRow[]): {
       pilotName,
       email: readCell(row, headerMap.email)?.toLowerCase() ?? null,
       phone: readCell(row, headerMap.phone),
+      qualifications: readCell(row, headerMap.qualifications),
       nNumber: readCell(row, headerMap.nNumber)?.toUpperCase() ?? null,
       makeModel: readCell(row, headerMap.makeModel),
       homeBaseAirport: readCell(row, headerMap.homeBaseAirport),
@@ -175,6 +178,7 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
             name: row.pilotName,
             email: row.email,
             phone: row.phone,
+            qualifications: row.qualifications,
           },
         });
         pilotId = created.id;

@@ -62,6 +62,16 @@ export function PilotForm({ pilot, action }: PilotFormProps): JSX.Element {
       </div>
 
       <div>
+        <FormLabel htmlFor="qualifications">Qualifications / Ratings</FormLabel>
+        <FormInput
+          id="qualifications"
+          name="qualifications"
+          placeholder="e.g. CFI, Instrument, Multi-Engine, Mountain Flying"
+          defaultValue={pilot?.qualifications ?? ""}
+        />
+      </div>
+
+      <div>
         <FormLabel htmlFor="notes">Notes</FormLabel>
         <FormTextarea id="notes" name="notes" rows={3} defaultValue={pilot?.notes ?? ""} />
       </div>

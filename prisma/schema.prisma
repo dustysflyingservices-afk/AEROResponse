@@ -61,14 +61,15 @@ model Organization {
 }
 
 model Pilot {
-  id        String     @id @default(cuid())
-  name      String
-  email     String?    @unique
-  phone     String?
-  notes     String?
-  aircraft  Aircraft[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  name           String
+  email          String?    @unique
+  phone          String?
+  notes          String?
+  qualifications String?
+  aircraft       Aircraft[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@map("pilots")
 }

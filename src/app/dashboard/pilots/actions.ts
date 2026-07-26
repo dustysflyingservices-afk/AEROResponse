@@ -10,6 +10,7 @@ export async function createPilotAction(formData: FormData): Promise<void> {
     name: formValue(formData, "name"),
     email: formValue(formData, "email"),
     phone: formValue(formData, "phone"),
+    qualifications: formValue(formData, "qualifications"),
     notes: formValue(formData, "notes"),
   });
 
@@ -22,6 +23,7 @@ export async function updatePilotAction(id: string, formData: FormData): Promise
     name: formValue(formData, "name"),
     email: formValue(formData, "email"),
     phone: formValue(formData, "phone"),
+    qualifications: formValue(formData, "qualifications"),
     notes: formValue(formData, "notes"),
   });
 

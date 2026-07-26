@@ -2,10 +2,24 @@ import Link from "next/link";
 import { listAircraft } from "@/lib/services/aircraft";
 import { deleteAircraftAction } from "@/app/dashboard/aircraft/actions";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { AIRCRAFT_CATEGORY_LABELS } from "@/lib/constants/aircraft-category";
+import {
+  AIRCRAFT_CATEGORIES,
+  AIRCRAFT_CATEGORY_LABELS,
+} from "@/lib/constants/aircraft-category";
 
-export default async function AircraftPage(): Promise<JSX.Element> {
-  const aircraft = await listAircraft();
+interface AircraftPageProps {
+  searchParams: {
+    q?: string;
+    category?: string;
+    minUsefulLoadLbs?: string;
+    minRangeNm?: string;
+  };
+}
+
+export default async function AircraftPage({
+  searchParams,
+}: AircraftPageProps): Promise<JSX.Element> {
+  const aircraft = await listAircraft(searchParams);
 
   return (
     <div>
@@ -23,6 +37,83 @@ export default async function AircraftPage(): Promise<JSX.Element> {
           Add Aircraft
         </Link>
       </div>
+
+      <form
+        method="get"
+        className="mt-6 flex flex-wrap items-end gap-3 rounded-lg border border-surface-border bg-surface-raised p-4"
+      >
+        <div className="min-w-[200px] flex-1">
+          <label htmlFor="q" className="block text-xs font-medium text-silver-400">
+            Search
+          </label>
+          <input
+            id="q"
+            name="q"
+            defaultValue={searchParams.q ?? ""}
+            placeholder="N-Number, make/model, base, pilot..."
+            className="mt-1 w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-silver-100 placeholder:text-silver-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="category" className="block text-xs font-medium text-silver-400">
+            Category
+          </label>
+          <select
+            id="category"
+            name="category"
+            defaultValue={searchParams.category ?? ""}
+            className="mt-1 rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-silver-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          >
+            <option value="">Any category</option>
+            {AIRCRAFT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {AIRCRAFT_CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label
+            htmlFor="minUsefulLoadLbs"
+            className="block text-xs font-medium text-silver-400"
+          >
+            Min Useful Load (lbs)
+          </label>
+          <input
+            id="minUsefulLoadLbs"
+            name="minUsefulLoadLbs"
+            type="number"
+            min={0}
+            defaultValue={searchParams.minUsefulLoadLbs ?? ""}
+            className="mt-1 w-32 rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-silver-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="minRangeNm" className="block text-xs font-medium text-silver-400">
+            Min Range (nm)
+          </label>
+          <input
+            id="minRangeNm"
+            name="minRangeNm"
+            type="number"
+            min={0}
+            defaultValue={searchParams.minRangeNm ?? ""}
+            className="mt-1 w-32 rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-silver-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <button
+          type="submit"
+          className="rounded-md border border-surface-border px-4 py-2 text-sm font-medium text-silver-300 hover:bg-surface"
+        >
+          Filter
+        </button>
+        <Link
+          href="/dashboard/aircraft"
+          className="text-sm font-medium text-silver-500 hover:text-silver-300"
+        >
+          Clear
+        </Link>
+      </form>
 
       <div className="mt-6 overflow-x-auto rounded-lg border border-surface-border">
         <table className="min-w-full divide-y divide-surface-border">

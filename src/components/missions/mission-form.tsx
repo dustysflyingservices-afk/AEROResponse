@@ -193,7 +193,7 @@ export function MissionForm({
               />
             </div>
             <div>
-              <FormLabel htmlFor="minRunwayFt">Min Runway (ft)</FormLabel>
+              <FormLabel htmlFor="minRunwayFt">Runway Available at Staging (ft)</FormLabel>
               <FormInput
                 id="minRunwayFt"
                 name="minRunwayFt"
