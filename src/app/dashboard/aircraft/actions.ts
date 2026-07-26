@@ -3,11 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAircraft, deleteAircraft, updateAircraft } from "@/lib/services/aircraft";
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
+import { formValue } from "@/lib/utils/form-data";
 
 export async function createAircraftAction(formData: FormData): Promise<void> {
   await createAircraft({

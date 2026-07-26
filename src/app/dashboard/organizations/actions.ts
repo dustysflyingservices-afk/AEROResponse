@@ -7,11 +7,7 @@ import {
   deleteOrganization,
   updateOrganization,
 } from "@/lib/services/organizations";
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
+import { formValue } from "@/lib/utils/form-data";
 
 export async function createOrganizationAction(formData: FormData): Promise<void> {
   await createOrganization({

@@ -3,11 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createPilot, deletePilot, updatePilot } from "@/lib/services/pilots";
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
+import { formValue } from "@/lib/utils/form-data";
 
 export async function createPilotAction(formData: FormData): Promise<void> {
   await createPilot({

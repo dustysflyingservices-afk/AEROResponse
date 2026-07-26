@@ -47,14 +47,15 @@ enum AircraftCategory {
 }
 
 model Organization {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
   contactName  String?
   contactPhone String?
   contactEmail String?
   notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  missions     Mission[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("organizations")
 }
@@ -88,4 +89,71 @@ model Aircraft {
 
   @@index([pilotId])
   @@map("aircraft")
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 3: Mission database, search, creation, and editing. Modeled
+// directly on the "Volunteer Pilot Activation" intake form (Who/What/When/
+// Where/Why). The structured fields under WHAT (category, minUsefulLoadLbs,
+// minRangeNm, minRunwayFt) are what Milestone 4's matching engine filters
+// Aircraft against - they sit alongside the free-text notes ops actually
+// receives, rather than replacing them.
+// ---------------------------------------------------------------------------
+
+enum MissionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MissionStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Mission {
+  id String @id @default(cuid())
+
+  // WHO
+  pointOfContact     String?
+  missionCoordinator String?
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+
+  // WHAT
+  missionDescription  String
+  cargoPassengers     String?
+  aircraftNeededNotes String?
+  specialRequirements String?
+
+  // Structured filters for the Milestone 4 matching engine
+  requiredCategory      AircraftCategory?
+  minUsefulLoadLbs      Int?
+  minRangeNm            Int?
+  minRunwayFt           Int?
+
+  // WHEN
+  launchWindow      String?
+  responseNeededBy  DateTime?
+  estimatedDuration String?
+
+  // WHERE
+  stagingAirport      String
+  destinationAirports String[]
+
+  // WHY
+  situationSummary String?
+  priority         MissionPriority @default(MEDIUM)
+
+  status    MissionStatus @default(OPEN)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status])
+  @@index([organizationId])
+  @@map("missions")
 }
