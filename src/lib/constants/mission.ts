@@ -24,3 +24,10 @@ export const MISSION_STATUS_LABELS: Record<MissionStatus, string> = {
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
 };
+
+export const MISSION_PRIORITY_BADGE_CLASSES: Record<MissionPriority, string> = {
+  LOW: "bg-surface text-silver-400 border-surface-border",
+  MEDIUM: "bg-surface text-silver-200 border-surface-border",
+  HIGH: "bg-brand-900 text-brand-400 border-brand-700",
+  CRITICAL: "bg-brand-500 text-white border-brand-500",
+};

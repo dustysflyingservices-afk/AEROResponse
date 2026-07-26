@@ -8,7 +8,7 @@ export default async function PilotsPage(): Promise<JSX.Element> {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-silver-100">Pilots</h1>
           <p className="mt-1 text-sm text-silver-500">
@@ -31,7 +31,7 @@ export default async function PilotsPage(): Promise<JSX.Element> {
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-surface-border">
+      <div className="mt-6 overflow-x-auto rounded-lg border border-surface-border">
         <table className="min-w-full divide-y divide-surface-border">
           <thead className="bg-surface-raised">
             <tr>

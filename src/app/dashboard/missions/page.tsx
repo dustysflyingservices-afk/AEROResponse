@@ -5,6 +5,7 @@ import { deleteMissionAction } from "@/app/dashboard/missions/actions";
 import { DeleteButton } from "@/components/ui/delete-button";
 import {
   MISSION_PRIORITIES,
+  MISSION_PRIORITY_BADGE_CLASSES,
   MISSION_PRIORITY_LABELS,
   MISSION_STATUSES,
   MISSION_STATUS_LABELS,
@@ -19,13 +20,6 @@ interface MissionsPageProps {
   };
 }
 
-const PRIORITY_BADGE_CLASSES: Record<string, string> = {
-  LOW: "bg-surface text-silver-400 border-surface-border",
-  MEDIUM: "bg-surface text-silver-200 border-surface-border",
-  HIGH: "bg-brand-900 text-brand-400 border-brand-700",
-  CRITICAL: "bg-brand-500 text-white border-brand-500",
-};
-
 export default async function MissionsPage({
   searchParams,
 }: MissionsPageProps): Promise<JSX.Element> {
@@ -36,7 +30,7 @@ export default async function MissionsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-silver-100">Missions</h1>
           <p className="mt-1 text-sm text-silver-500">
@@ -181,7 +175,7 @@ export default async function MissionsPage({
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span
-                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${PRIORITY_BADGE_CLASSES[mission.priority]}`}
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${MISSION_PRIORITY_BADGE_CLASSES[mission.priority]}`}
                     >
                       {MISSION_PRIORITY_LABELS[mission.priority]}
                     </span>

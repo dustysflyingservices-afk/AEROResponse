@@ -1,13 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/missions", label: "Missions" },
-  { href: "/dashboard/organizations", label: "Organizations" },
-  { href: "/dashboard/pilots", label: "Pilots" },
-  { href: "/dashboard/aircraft", label: "Aircraft" },
-] as const;
+import { NAV_ITEMS } from "@/lib/constants/nav";
 
 export function Sidebar(): JSX.Element {
   return (
