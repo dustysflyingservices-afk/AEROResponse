@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -29,4 +28,64 @@ model User {
   updatedAt    DateTime @updatedAt
 
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 2: Organizations (requesting agencies), Pilots, and Aircraft.
+// Aircraft carries the structured fields the Milestone 4 matching engine
+// will filter on (category, useful load, range, runway requirement) so the
+// schema doesn't need to change again when matching is built.
+// ---------------------------------------------------------------------------
+
+enum AircraftCategory {
+  SINGLE_ENGINE_PISTON
+  MULTI_ENGINE_PISTON
+  TURBOPROP
+  JET
+  HELICOPTER
+  OTHER
+}
+
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("organizations")
+}
+
+model Pilot {
+  id        String     @id @default(cuid())
+  name      String
+  email     String?    @unique
+  phone     String?
+  notes     String?
+  aircraft  Aircraft[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("pilots")
+}
+
+model Aircraft {
+  id              String           @id @default(cuid())
+  nNumber         String           @unique
+  makeModel       String
+  homeBaseAirport String?
+  category        AircraftCategory @default(OTHER)
+  usefulLoadLbs   Int?
+  rangeNm         Int?
+  minRunwayFt     Int?
+  pilotId         String
+  pilot           Pilot            @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([pilotId])
+  @@map("aircraft")
 }

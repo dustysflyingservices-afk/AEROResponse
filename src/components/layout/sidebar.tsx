@@ -1,7 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const NAV_ITEMS = [{ href: "/dashboard", label: "Dashboard" }] as const;
+const NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/organizations", label: "Organizations" },
+  { href: "/dashboard/pilots", label: "Pilots" },
+  { href: "/dashboard/aircraft", label: "Aircraft" },
+] as const;
 
 export function Sidebar(): JSX.Element {
   return (
@@ -16,7 +21,6 @@ export function Sidebar(): JSX.Element {
         />
         <div>
           <p className="text-sm font-semibold text-silver-100">AeroResponse</p>
-          <p className="text-[11px] text-silver-500">Props for a Purpose</p>
         </div>
       </div>
       <nav className="px-2">

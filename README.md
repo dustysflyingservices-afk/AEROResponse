@@ -1,6 +1,6 @@
 # AeroResponse
 
-Volunteer pilot and mission coordination platform for Props for a Purpose.
+Volunteer pilot and mission coordination platform.
 
 ## Milestone 1 scope
 
