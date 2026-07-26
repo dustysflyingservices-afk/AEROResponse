@@ -1,9 +1,9 @@
 import { MissionForm } from "@/components/missions/mission-form";
 import { createMissionAction } from "@/app/dashboard/missions/actions";
-import { listOrganizations } from "@/lib/services/organizations";
+import { listOrganizationOptions } from "@/lib/services/organizations";
 
 export default async function NewMissionPage(): Promise<JSX.Element> {
-  const organizations = await listOrganizations();
+  const organizations = await listOrganizationOptions();
 
   return (
     <div>

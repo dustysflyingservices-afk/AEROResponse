@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FormError, FormInput, FormLabel, FormTextarea } from "@/components/ui/form-fields";
+import { isNextRedirectError } from "@/lib/utils/errors";
 import type { Organization } from "@prisma/client";
 
 interface OrganizationFormProps {
@@ -27,6 +28,9 @@ export function OrganizationForm({
     try {
       await action(new FormData(event.currentTarget));
     } catch (submitError) {
+      if (isNextRedirectError(submitError)) {
+        throw submitError;
+      }
       setIsSubmitting(false);
       setError(
         submitError instanceof Error

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listMissions } from "@/lib/services/missions";
-import { listOrganizations } from "@/lib/services/organizations";
+import { listOrganizationOptions } from "@/lib/services/organizations";
 import { deleteMissionAction } from "@/app/dashboard/missions/actions";
 import { DeleteButton } from "@/components/ui/delete-button";
 import {
@@ -25,7 +25,7 @@ export default async function MissionsPage({
 }: MissionsPageProps): Promise<JSX.Element> {
   const [missions, organizations] = await Promise.all([
     listMissions(searchParams),
-    listOrganizations(),
+    listOrganizationOptions(),
   ]);
 
   return (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FormError, FormInput, FormLabel, FormTextarea } from "@/components/ui/form-fields";
+import { isNextRedirectError } from "@/lib/utils/errors";
 import type { Pilot } from "@prisma/client";
 
 interface PilotFormProps {
@@ -24,6 +25,9 @@ export function PilotForm({ pilot, action }: PilotFormProps): JSX.Element {
     try {
       await action(new FormData(event.currentTarget));
     } catch (submitError) {
+      if (isNextRedirectError(submitError)) {
+        throw submitError;
+      }
       setIsSubmitting(false);
       setError(
         submitError instanceof Error

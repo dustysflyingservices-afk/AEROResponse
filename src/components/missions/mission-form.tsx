@@ -10,6 +10,7 @@ import {
   FormSelect,
   FormTextarea,
 } from "@/components/ui/form-fields";
+import { isNextRedirectError } from "@/lib/utils/errors";
 import {
   AIRCRAFT_CATEGORIES,
   AIRCRAFT_CATEGORY_LABELS,
@@ -63,6 +64,9 @@ export function MissionForm({
     try {
       await action(new FormData(event.currentTarget));
     } catch (submitError) {
+      if (isNextRedirectError(submitError)) {
+        throw submitError;
+      }
       setIsSubmitting(false);
       setError(
         submitError instanceof Error

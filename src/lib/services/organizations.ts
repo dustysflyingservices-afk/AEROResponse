@@ -6,6 +6,15 @@ export async function listOrganizations(): Promise<Organization[]> {
   return prisma.organization.findMany({ orderBy: { name: "asc" } });
 }
 
+export async function listOrganizationOptions(): Promise<
+  Array<{ id: string; name: string }>
+> {
+  return prisma.organization.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function getOrganization(id: string): Promise<Organization | null> {
   return prisma.organization.findUnique({ where: { id } });
 }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getMission } from "@/lib/services/missions";
-import { listOrganizations } from "@/lib/services/organizations";
+import { listOrganizationOptions } from "@/lib/services/organizations";
 import { updateMissionAction } from "@/app/dashboard/missions/actions";
 import { MissionForm } from "@/components/missions/mission-form";
 import { MatchingPanel } from "@/components/missions/matching-panel";
@@ -12,7 +12,7 @@ export default async function EditMissionPage({
 }): Promise<JSX.Element> {
   const [mission, organizations] = await Promise.all([
     getMission(params.id),
-    listOrganizations(),
+    listOrganizationOptions(),
   ]);
 
   if (!mission) {
