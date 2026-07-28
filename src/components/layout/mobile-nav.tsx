@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getNavItems } from "@/lib/constants/nav";
+import { NAV_ITEMS } from "@/lib/constants/nav";
 
-interface MobileNavProps {
-  isAdmin: boolean;
-}
-
-export function MobileNav({ isAdmin }: MobileNavProps): JSX.Element {
+export function MobileNav(): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const navItems = getNavItems(isAdmin);
 
   // Close the menu automatically whenever the route changes.
   useEffect(() => {
@@ -58,7 +53,7 @@ export function MobileNav({ isAdmin }: MobileNavProps): JSX.Element {
       {isOpen ? (
         <nav className="absolute left-0 right-0 top-full z-20 border-b border-surface-border bg-surface-raised px-4 py-3 shadow-lg">
           <ul className="space-y-1">
-            {navItems.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
