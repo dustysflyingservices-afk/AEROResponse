@@ -34,12 +34,16 @@ interface NormalizedRow {
   makeModel: string | null;
   nNumber: string | null;
   homeBaseAirport: string | null;
+  usefulLoadLbs: number | null;
+  rangeNm: number | null;
+  minRunwayFt: number | null;
 }
 
 // Maps many possible spreadsheet header spellings to our canonical field
 // names, matching both the Volunteer Pilot Interest Form's wording and
 // common variants. Headers are compared after lowercasing and stripping
-// non-alphanumeric characters.
+// non-alphanumeric characters, so "Estimated Useful Load (lb)" normalizes to
+// "estimatedusefulloadlb".
 const HEADER_ALIASES: Record<string, string[]> = {
   firstName: ["firstname", "first"],
   lastName: ["lastname", "last"],
@@ -60,7 +64,36 @@ const HEADER_ALIASES: Record<string, string[]> = {
   makeModel: ["aircrafttype", "aircraft", "aircraftmakemodel", "makemodel"],
   nNumber: ["nnumber", "tailnumber", "registration", "regnumber"],
   homeBaseAirport: ["homebaseairport", "homebase", "baseairport", "base", "airport"],
+  usefulLoadLbs: [
+    "estimatedusefulloadlb",
+    "estimatedusefulload",
+    "usefulloadlbs",
+    "usefulload",
+    "usefulloadlb",
+  ],
+  rangeNm: ["rangenm", "range", "rangemiles"],
+  minRunwayFt: ["minrunwayft", "minrunway", "runwayft", "runwayrequired"],
 };
+
+// Aircraft Type values that mean "this pilot doesn't own/fly a specific
+// aircraft" rather than an actual aircraft - these should never create an
+// Aircraft record.
+const NON_AIRCRAFT_VALUES = new Set([
+  "non owner",
+  "nonowner",
+  "none",
+  "n/a",
+  "na",
+  "no aircraft",
+  "renter",
+  "student",
+  "tbd",
+  "unknown",
+]);
+
+// Matches a US N-Number: N followed by 1-5 digits and up to 2 trailing
+// letters (e.g. N4323X, N12345).
+const N_NUMBER_PATTERN = /\bN\d{1,5}[A-Z]{0,2}\b/i;
 
 function normalizeHeaderKey(header: string): string {
   return header.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -95,12 +128,53 @@ function readCell(row: RosterRow, header: string | undefined): string | null {
   return text.length > 0 ? text : null;
 }
 
+function readNumberCell(row: RosterRow, header: string | undefined): number | null {
+  const text = readCell(row, header);
+  if (!text) {
+    return null;
+  }
+  const parsed = Number(text.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
 function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/);
   if (parts.length === 1) {
     return { firstName: parts[0], lastName: "" };
   }
   return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
+
+/**
+ * Splits a combined "Aircraft Type" cell like "Piper Archer II, N4323X" into
+ * separate make/model and N-Number when there's no dedicated N-Number
+ * column. Also filters out placeholder values ("Non owner", "N/A", etc.)
+ * that mean the pilot doesn't have a specific aircraft on file.
+ */
+function parseAircraftTypeCell(
+  rawMakeModel: string | null
+): { makeModel: string | null; nNumber: string | null } {
+  if (!rawMakeModel) {
+    return { makeModel: null, nNumber: null };
+  }
+
+  if (NON_AIRCRAFT_VALUES.has(rawMakeModel.trim().toLowerCase())) {
+    return { makeModel: null, nNumber: null };
+  }
+
+  const match = rawMakeModel.match(N_NUMBER_PATTERN);
+  if (!match) {
+    return { makeModel: rawMakeModel, nNumber: null };
+  }
+
+  const nNumber = match[0].toUpperCase();
+  const makeModel = rawMakeModel
+    .replace(match[0], "")
+    .replace(/,\s*$/, "")
+    .replace(/^\s*,/, "")
+    .trim();
+
+  return { makeModel: makeModel.length > 0 ? makeModel : rawMakeModel, nNumber };
 }
 
 function normalizeRows(rows: RosterRow[]): {
@@ -136,6 +210,10 @@ function normalizeRows(rows: RosterRow[]): {
       return;
     }
 
+    const rawMakeModel = readCell(row, headerMap.makeModel);
+    const explicitNNumber = readCell(row, headerMap.nNumber)?.toUpperCase() ?? null;
+    const { makeModel, nNumber: parsedNNumber } = parseAircraftTypeCell(rawMakeModel);
+
     normalized.push({
       rowNumber,
       firstName,
@@ -149,9 +227,12 @@ function normalizeRows(rows: RosterRow[]): {
       picTotalTime: readCell(row, headerMap.picTotalTime),
       airmenRatings: readCell(row, headerMap.airmenRatings),
       motivation: readCell(row, headerMap.motivation),
-      makeModel: readCell(row, headerMap.makeModel),
-      nNumber: readCell(row, headerMap.nNumber)?.toUpperCase() ?? null,
+      makeModel,
+      nNumber: explicitNNumber ?? parsedNNumber,
       homeBaseAirport: readCell(row, headerMap.homeBaseAirport),
+      usefulLoadLbs: readNumberCell(row, headerMap.usefulLoadLbs),
+      rangeNm: readNumberCell(row, headerMap.rangeNm),
+      minRunwayFt: readNumberCell(row, headerMap.minRunwayFt),
     });
   });
 
@@ -167,7 +248,8 @@ function normalizeRows(rows: RosterRow[]): {
  * ends up as a single Pilot record with multiple linked Aircraft records,
  * rather than a duplicated pilot per row. Aircraft with an N-Number are
  * upserted by tail number; aircraft without one are always created fresh,
- * since there's no reliable key to match them on.
+ * since there's no reliable key to match them on. Values like "Non owner" in
+ * the Aircraft Type column are treated as "no aircraft", not as data.
  */
 export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummary> {
   const { normalized, errors } = normalizeRows(rows);
@@ -252,9 +334,17 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
       }
 
       if (!row.makeModel) {
-        // Pilot-only row (no aircraft info) - nothing further to do.
+        // Pilot-only row (no aircraft info, or a "Non owner" style value).
         continue;
       }
+
+      const aircraftData = {
+        makeModel: row.makeModel,
+        homeBaseAirport: row.homeBaseAirport,
+        usefulLoadLbs: row.usefulLoadLbs,
+        rangeNm: row.rangeNm,
+        minRunwayFt: row.minRunwayFt,
+      };
 
       if (row.nNumber) {
         const existingAircraft = await prisma.aircraft.findUnique({
@@ -265,8 +355,11 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
           await prisma.aircraft.update({
             where: { nNumber: row.nNumber },
             data: {
-              makeModel: row.makeModel,
-              homeBaseAirport: row.homeBaseAirport ?? existingAircraft.homeBaseAirport,
+              makeModel: aircraftData.makeModel,
+              homeBaseAirport: aircraftData.homeBaseAirport ?? existingAircraft.homeBaseAirport,
+              usefulLoadLbs: aircraftData.usefulLoadLbs ?? existingAircraft.usefulLoadLbs,
+              rangeNm: aircraftData.rangeNm ?? existingAircraft.rangeNm,
+              minRunwayFt: aircraftData.minRunwayFt ?? existingAircraft.minRunwayFt,
               pilotId,
             },
           });
@@ -278,8 +371,7 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
       await prisma.aircraft.create({
         data: {
           nNumber: row.nNumber,
-          makeModel: row.makeModel,
-          homeBaseAirport: row.homeBaseAirport,
+          ...aircraftData,
           pilotId,
         },
       });

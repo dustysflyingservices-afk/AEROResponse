@@ -113,7 +113,7 @@ export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.El
             <a
               href={
                 selectedEmails.length > 0
-                  ? `mailto:?bcc=${encodeURIComponent(emailList)}&subject=${encodeURIComponent(
+                  ? `mailto:${encodeURIComponent(emailList)}?subject=${encodeURIComponent(
                       emailTemplate.subject
                     )}&body=${encodeURIComponent(emailTemplate.body)}`
                   : undefined
