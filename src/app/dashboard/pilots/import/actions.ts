@@ -5,9 +5,6 @@ import { importPilotRoster, type ImportSummary, type RosterRow } from "@/lib/ser
 
 export async function importPilotRosterAction(rows: RosterRow[]): Promise<ImportSummary> {
   const summary = await importPilotRoster(rows);
-
   revalidatePath("/dashboard/pilots");
-  revalidatePath("/dashboard/aircraft");
-
   return summary;
 }

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 export interface MatchRow {
   aircraftId: string;
-  nNumber: string;
+  nNumber: string | null;
   makeModel: string;
   categoryLabel: string;
   homeBaseAirport: string | null;
@@ -18,9 +18,10 @@ export interface MatchRow {
 
 interface MatchResultsProps {
   rows: MatchRow[];
+  emailTemplate: { subject: string; body: string };
 }
 
-export function MatchResults({ rows }: MatchResultsProps): JSX.Element {
+export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.Element {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(rows.filter((row) => row.isFullMatch).map((row) => row.aircraftId))
   );
@@ -81,7 +82,7 @@ export function MatchResults({ rows }: MatchResultsProps): JSX.Element {
   if (rows.length === 0) {
     return (
       <p className="mt-4 text-sm text-silver-500">
-        No aircraft in the database yet. Add aircraft or import your roster first.
+        No aircraft in the database yet. Add a pilot and their aircraft first.
       </p>
     );
   }
@@ -112,7 +113,9 @@ export function MatchResults({ rows }: MatchResultsProps): JSX.Element {
             <a
               href={
                 selectedEmails.length > 0
-                  ? `mailto:?bcc=${encodeURIComponent(emailList)}`
+                  ? `mailto:?bcc=${encodeURIComponent(emailList)}&subject=${encodeURIComponent(
+                      emailTemplate.subject
+                    )}&body=${encodeURIComponent(emailTemplate.body)}`
                   : undefined
               }
               className={`rounded-md px-3 py-1.5 text-sm font-medium text-white ${
@@ -241,7 +244,7 @@ function MatchGroup({
                   />
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <p className="font-medium text-silver-100">{row.nNumber}</p>
+                  <p className="font-medium text-silver-100">{row.nNumber ?? row.makeModel}</p>
                   <p className="text-xs text-silver-500">
                     {row.makeModel} &middot; {row.categoryLabel}
                     {row.homeBaseAirport ? ` \u00b7 ${row.homeBaseAirport}` : ""}

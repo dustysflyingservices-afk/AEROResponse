@@ -27,15 +27,10 @@ export default async function AircraftPage({
         <div>
           <h1 className="text-2xl font-semibold text-silver-100">Aircraft</h1>
           <p className="mt-1 text-sm text-silver-500">
-            Registered aircraft and their capabilities.
+            Every aircraft on file, across all pilots. To add or edit an
+            aircraft, open the owning pilot.
           </p>
         </div>
-        <Link
-          href="/dashboard/aircraft/new"
-          className="rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-        >
-          Add Aircraft
-        </Link>
       </div>
 
       <form
@@ -50,7 +45,7 @@ export default async function AircraftPage({
             id="q"
             name="q"
             defaultValue={searchParams.q ?? ""}
-            placeholder="N-Number, make/model, base, pilot..."
+            placeholder="N-Number, aircraft type, base, pilot..."
             className="mt-1 w-full rounded-md border border-surface-border bg-surface px-3 py-2 text-sm text-silver-100 placeholder:text-silver-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -123,7 +118,7 @@ export default async function AircraftPage({
                 N-Number
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
-                Make / Model
+                Aircraft Type
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
                 Pilot
@@ -144,17 +139,19 @@ export default async function AircraftPage({
             {aircraft.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-6 text-center text-sm text-silver-500">
-                  No aircraft yet. Add one manually or import your pilot roster.
+                  No aircraft on file yet. Add a pilot and their aircraft together.
                 </td>
               </tr>
             ) : (
               aircraft.map((plane) => (
                 <tr key={plane.id}>
                   <td className="px-4 py-3 text-sm font-medium text-silver-100">
-                    {plane.nNumber}
+                    {plane.nNumber ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-sm text-silver-300">{plane.makeModel}</td>
-                  <td className="px-4 py-3 text-sm text-silver-300">{plane.pilot.name}</td>
+                  <td className="px-4 py-3 text-sm text-silver-300">
+                    {plane.pilot.firstName} {plane.pilot.lastName}
+                  </td>
                   <td className="px-4 py-3 text-sm text-silver-300">
                     {plane.homeBaseAirport ?? "—"}
                   </td>
@@ -167,14 +164,14 @@ export default async function AircraftPage({
                   <td className="px-4 py-3 text-right text-sm">
                     <div className="flex justify-end gap-4">
                       <Link
-                        href={`/dashboard/aircraft/${plane.id}/edit`}
+                        href={`/dashboard/pilots/${plane.pilotId}/edit`}
                         className="font-medium text-silver-300 hover:text-silver-100"
                       >
                         Edit
                       </Link>
                       <DeleteButton
                         action={deleteAircraftAction.bind(null, plane.id)}
-                        confirmMessage={`Delete aircraft ${plane.nNumber}?`}
+                        confirmMessage={`Remove aircraft ${plane.nNumber ?? plane.makeModel}?`}
                       />
                     </div>
                   </td>

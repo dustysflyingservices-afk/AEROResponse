@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Milestone 1: authentication only. Organization / Pilot / Aircraft / Mission
-// models are introduced in Milestones 2-3 to keep the schema scoped to what
-// the app actually uses at each stage.
-// ---------------------------------------------------------------------------
-
 enum Role {
   ADMIN
   OPS
@@ -29,13 +23,6 @@ model User {
 
   @@map("users")
 }
-
-// ---------------------------------------------------------------------------
-// Milestone 2: Organizations (requesting agencies), Pilots, and Aircraft.
-// Aircraft carries the structured fields the Milestone 4 matching engine
-// will filter on (category, useful load, range, runway requirement) so the
-// schema doesn't need to change again when matching is built.
-// ---------------------------------------------------------------------------
 
 enum AircraftCategory {
   SINGLE_ENGINE_PISTON
@@ -60,23 +47,42 @@ model Organization {
   @@map("organizations")
 }
 
+// ---------------------------------------------------------------------------
+// Pilot fields mirror the real intake source (Volunteer Pilot Interest Form):
+// name, contact info, address, PIC time, airmen ratings, motivation. Aircraft
+// remains a separate related table - a pilot can have 0, 1, or several - but
+// the app's UI now creates/edits a pilot and their aircraft together in one
+// combined form instead of two separate entry flows.
+// ---------------------------------------------------------------------------
+
 model Pilot {
-  id             String     @id @default(cuid())
-  name           String
-  email          String?    @unique
-  phone          String?
-  notes          String?
-  qualifications String?
-  aircraft       Aircraft[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id    String @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String? @unique
+  phone     String?
+
+  street1 String?
+  street2 String?
+  city    String?
+  state   String?
+  zipCode String?
+
+  picTotalTime  String?
+  airmenRatings String?
+  motivation    String?
+  notes         String?
+
+  aircraft  Aircraft[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@map("pilots")
 }
 
 model Aircraft {
   id              String           @id @default(cuid())
-  nNumber         String           @unique
+  nNumber         String?          @unique
   makeModel       String
   homeBaseAirport String?
   category        AircraftCategory @default(OTHER)
@@ -91,15 +97,6 @@ model Aircraft {
   @@index([pilotId])
   @@map("aircraft")
 }
-
-// ---------------------------------------------------------------------------
-// Milestone 3: Mission database, search, creation, and editing. Modeled
-// directly on the "Volunteer Pilot Activation" intake form (Who/What/When/
-// Where/Why). The structured fields under WHAT (category, minUsefulLoadLbs,
-// minRangeNm, minRunwayFt) are what Milestone 4's matching engine filters
-// Aircraft against - they sit alongside the free-text notes ops actually
-// receives, rather than replacing them.
-// ---------------------------------------------------------------------------
 
 enum MissionPriority {
   LOW
@@ -131,11 +128,11 @@ model Mission {
   aircraftNeededNotes String?
   specialRequirements String?
 
-  // Structured filters for the Milestone 4 matching engine
-  requiredCategory      AircraftCategory?
-  minUsefulLoadLbs      Int?
-  minRangeNm            Int?
-  minRunwayFt           Int?
+  // Structured filters for the matching engine
+  requiredCategory AircraftCategory?
+  minUsefulLoadLbs Int?
+  minRangeNm       Int?
+  minRunwayFt      Int?
 
   // WHEN
   launchWindow      String?

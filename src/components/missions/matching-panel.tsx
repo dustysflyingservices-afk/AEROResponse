@@ -26,13 +26,38 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
     makeModel: match.aircraft.makeModel,
     categoryLabel: AIRCRAFT_CATEGORY_LABELS[match.aircraft.category],
     homeBaseAirport: match.aircraft.homeBaseAirport,
-    pilotName: match.aircraft.pilot.name,
+    pilotName: `${match.aircraft.pilot.firstName} ${match.aircraft.pilot.lastName}`.trim(),
     pilotEmail: match.aircraft.pilot.email,
     pilotPhone: match.aircraft.pilot.phone,
-    qualifications: match.aircraft.pilot.qualifications,
+    qualifications: match.aircraft.pilot.airmenRatings,
     isFullMatch: match.isFullMatch,
     reasons: match.reasons,
   }));
+
+  const emailTemplate = {
+    subject: `Volunteer Pilot Request: ${mission.missionDescription.slice(0, 80)}`,
+    body: [
+      `You're being contacted about a mission that may need your aircraft.`,
+      ``,
+      `MISSION: ${mission.missionDescription}`,
+      mission.cargoPassengers ? `CARGO/PASSENGERS: ${mission.cargoPassengers}` : null,
+      mission.minUsefulLoadLbs
+        ? `APPROXIMATE WEIGHT / USEFUL LOAD NEEDED: ${mission.minUsefulLoadLbs} lbs`
+        : null,
+      mission.stagingAirport ? `STAGING AIRPORT: ${mission.stagingAirport}` : null,
+      mission.destinationAirports.length > 0
+        ? `DESTINATION AIRPORT(S): ${mission.destinationAirports.join(", ")}`
+        : null,
+      mission.launchWindow ? `DATE/LAUNCH WINDOW NEEDED: ${mission.launchWindow}` : null,
+      mission.responseNeededBy
+        ? `RESPONSE NEEDED BY: ${mission.responseNeededBy.toLocaleString()}`
+        : null,
+      ``,
+      `Please do not self-dispatch. Assignments will be coordinated by Operations.`,
+    ]
+      .filter((line) => line !== null)
+      .join("\n"),
+  };
 
   return (
     <div className="mt-10 border-t border-surface-border pt-8">
@@ -43,7 +68,7 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
           : "This mission has no structured requirements set, so every aircraft on file is shown. Add requirements under \u201cWhat\u201d for a filtered match."}
       </p>
 
-      <MatchResults rows={rows} />
+      <MatchResults rows={rows} emailTemplate={emailTemplate} />
     </div>
   );
 }

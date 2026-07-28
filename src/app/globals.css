@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-50: 253 236 235;
+  --brand-100: 248 201 198;
+  --brand-400: 230 71 63;
+  --brand-500: 200 16 46;
+  --brand-600: 165 13 38;
+  --brand-700: 122 10 28;
+  --brand-900: 58 5 9;
+}
+
 html,
 body {
   height: 100%;

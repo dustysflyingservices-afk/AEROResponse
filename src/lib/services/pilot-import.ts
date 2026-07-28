@@ -20,33 +20,46 @@ export interface ImportSummary {
 
 interface NormalizedRow {
   rowNumber: number;
-  pilotName: string;
+  firstName: string;
+  lastName: string;
   email: string | null;
   phone: string | null;
-  qualifications: string | null;
-  nNumber: string | null;
+  street1: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  picTotalTime: string | null;
+  airmenRatings: string | null;
+  motivation: string | null;
   makeModel: string | null;
+  nNumber: string | null;
   homeBaseAirport: string | null;
 }
 
-// Maps many possible spreadsheet header spellings to our canonical field names.
-// Headers are compared after lowercasing and stripping non-alphanumeric chars,
-// so "N-Number", "n number", and "N_Number" all match "nnumber".
+// Maps many possible spreadsheet header spellings to our canonical field
+// names, matching both the Volunteer Pilot Interest Form's wording and
+// common variants. Headers are compared after lowercasing and stripping
+// non-alphanumeric characters.
 const HEADER_ALIASES: Record<string, string[]> = {
-  pilotName: ["pilotname", "name", "pilot"],
+  firstName: ["firstname", "first"],
+  lastName: ["lastname", "last"],
+  fullName: ["name", "pilotname", "fullname", "pilot"],
   email: ["email", "emailaddress", "e-mail"],
   phone: ["phone", "phonenumber", "cell", "mobile", "cellphone"],
-  nNumber: ["nnumber", "tailnumber", "registration", "regnumber", "n"],
-  makeModel: [
-    "aircraftmakemodel",
-    "makemodel",
-    "aircraftmake",
-    "aircrafttype",
-    "aircraft",
-    "makemodeltype",
+  street1: ["streetaddress", "address", "street"],
+  city: ["city"],
+  state: ["state", "stateprovince", "province"],
+  zipCode: ["postalzipcode", "zipcode", "zip", "postalcode"],
+  picTotalTime: ["pictotaltime", "totaltime", "flighttime"],
+  airmenRatings: ["airmenratings", "ratings", "qualifications", "certifications"],
+  motivation: [
+    "whatmotivatesyoutovolunteerwithourorganization",
+    "motivation",
+    "whyvolunteer",
   ],
+  makeModel: ["aircrafttype", "aircraft", "aircraftmakemodel", "makemodel"],
+  nNumber: ["nnumber", "tailnumber", "registration", "regnumber"],
   homeBaseAirport: ["homebaseairport", "homebase", "baseairport", "base", "airport"],
-  qualifications: ["qualifications", "ratings", "certifications", "quals"],
 };
 
 function normalizeHeaderKey(header: string): string {
@@ -61,9 +74,7 @@ function buildHeaderMap(sampleRow: RosterRow): Record<string, string> {
   }));
 
   for (const [canonicalField, aliases] of Object.entries(HEADER_ALIASES)) {
-    const match = normalizedHeaders.find((header) =>
-      aliases.includes(header.normalized)
-    );
+    const match = normalizedHeaders.find((header) => aliases.includes(header.normalized));
     if (match) {
       map[canonicalField] = match.original;
     }
@@ -84,6 +95,14 @@ function readCell(row: RosterRow, header: string | undefined): string | null {
   return text.length > 0 ? text : null;
 }
 
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: "" };
+  }
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
+
 function normalizeRows(rows: RosterRow[]): {
   normalized: NormalizedRow[];
   errors: ImportRowError[];
@@ -99,21 +118,39 @@ function normalizeRows(rows: RosterRow[]): {
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2; // account for header row + 1-indexing
-    const pilotName = readCell(row, headerMap.pilotName);
 
-    if (!pilotName) {
+    let firstName = readCell(row, headerMap.firstName);
+    let lastName = readCell(row, headerMap.lastName);
+
+    if (!firstName && !lastName) {
+      const fullName = readCell(row, headerMap.fullName);
+      if (fullName) {
+        const split = splitFullName(fullName);
+        firstName = split.firstName;
+        lastName = split.lastName;
+      }
+    }
+
+    if (!firstName) {
       errors.push({ row: rowNumber, message: "Missing pilot name; row skipped." });
       return;
     }
 
     normalized.push({
       rowNumber,
-      pilotName,
+      firstName,
+      lastName: lastName ?? "",
       email: readCell(row, headerMap.email)?.toLowerCase() ?? null,
       phone: readCell(row, headerMap.phone),
-      qualifications: readCell(row, headerMap.qualifications),
-      nNumber: readCell(row, headerMap.nNumber)?.toUpperCase() ?? null,
+      street1: readCell(row, headerMap.street1),
+      city: readCell(row, headerMap.city),
+      state: readCell(row, headerMap.state),
+      zipCode: readCell(row, headerMap.zipCode),
+      picTotalTime: readCell(row, headerMap.picTotalTime),
+      airmenRatings: readCell(row, headerMap.airmenRatings),
+      motivation: readCell(row, headerMap.motivation),
       makeModel: readCell(row, headerMap.makeModel),
+      nNumber: readCell(row, headerMap.nNumber)?.toUpperCase() ?? null,
       homeBaseAirport: readCell(row, headerMap.homeBaseAirport),
     });
   });
@@ -128,7 +165,9 @@ function normalizeRows(rows: RosterRow[]): {
  * exact case-insensitive name if no email is present. This means a pilot who
  * owns multiple aircraft - one row per aircraft in the source spreadsheet -
  * ends up as a single Pilot record with multiple linked Aircraft records,
- * rather than a duplicated pilot per row.
+ * rather than a duplicated pilot per row. Aircraft with an N-Number are
+ * upserted by tail number; aircraft without one are always created fresh,
+ * since there's no reliable key to match them on.
  */
 export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummary> {
   const { normalized, errors } = normalizeRows(rows);
@@ -142,8 +181,6 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
     errors: [...errors],
   };
 
-  // In-batch dedup keys, populated as we go so later rows in the same
-  // spreadsheet can match pilots created earlier in this same import.
   const pilotIdByEmail = new Map<string, string>();
   const pilotIdByName = new Map<string, string>();
 
@@ -158,13 +195,17 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
           null;
       }
 
+      const nameKey = `${row.firstName} ${row.lastName}`.trim().toLowerCase();
+
       if (!pilotId) {
-        const nameKey = row.pilotName.trim().toLowerCase();
         pilotId = pilotIdByName.get(nameKey) ?? null;
 
         if (!pilotId && !row.email) {
           const existingByName = await prisma.pilot.findFirst({
-            where: { name: { equals: row.pilotName, mode: "insensitive" } },
+            where: {
+              firstName: { equals: row.firstName, mode: "insensitive" },
+              lastName: { equals: row.lastName, mode: "insensitive" },
+            },
           });
           pilotId = existingByName?.id ?? null;
         }
@@ -172,62 +213,77 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
 
       if (pilotId) {
         summary.pilotsMatched += 1;
+        await prisma.pilot.update({
+          where: { id: pilotId },
+          data: {
+            phone: row.phone ?? undefined,
+            street1: row.street1 ?? undefined,
+            city: row.city ?? undefined,
+            state: row.state ?? undefined,
+            zipCode: row.zipCode ?? undefined,
+            picTotalTime: row.picTotalTime ?? undefined,
+            airmenRatings: row.airmenRatings ?? undefined,
+            motivation: row.motivation ?? undefined,
+          },
+        });
       } else {
         const created = await prisma.pilot.create({
           data: {
-            name: row.pilotName,
+            firstName: row.firstName,
+            lastName: row.lastName,
             email: row.email,
             phone: row.phone,
-            qualifications: row.qualifications,
+            street1: row.street1,
+            city: row.city,
+            state: row.state,
+            zipCode: row.zipCode,
+            picTotalTime: row.picTotalTime,
+            airmenRatings: row.airmenRatings,
+            motivation: row.motivation,
           },
         });
         pilotId = created.id;
         summary.pilotsCreated += 1;
       }
 
-      pilotIdByName.set(row.pilotName.trim().toLowerCase(), pilotId);
+      pilotIdByName.set(nameKey, pilotId);
       if (row.email) {
         pilotIdByEmail.set(row.email, pilotId);
       }
 
-      if (!row.nNumber) {
-        // Pilot with no aircraft on this row (or a row that's pilot-info-only).
+      if (!row.makeModel) {
+        // Pilot-only row (no aircraft info) - nothing further to do.
         continue;
       }
 
-      const existingAircraft = await prisma.aircraft.findUnique({
-        where: { nNumber: row.nNumber },
-      });
-
-      if (existingAircraft) {
-        await prisma.aircraft.update({
+      if (row.nNumber) {
+        const existingAircraft = await prisma.aircraft.findUnique({
           where: { nNumber: row.nNumber },
-          data: {
-            makeModel: row.makeModel ?? existingAircraft.makeModel,
-            homeBaseAirport: row.homeBaseAirport ?? existingAircraft.homeBaseAirport,
-            pilotId,
-          },
         });
-        summary.aircraftUpdated += 1;
-      } else {
-        if (!row.makeModel) {
-          summary.errors.push({
-            row: row.rowNumber,
-            message: `Aircraft ${row.nNumber} has no make/model; aircraft skipped (pilot still imported).`,
+
+        if (existingAircraft) {
+          await prisma.aircraft.update({
+            where: { nNumber: row.nNumber },
+            data: {
+              makeModel: row.makeModel,
+              homeBaseAirport: row.homeBaseAirport ?? existingAircraft.homeBaseAirport,
+              pilotId,
+            },
           });
+          summary.aircraftUpdated += 1;
           continue;
         }
-
-        await prisma.aircraft.create({
-          data: {
-            nNumber: row.nNumber,
-            makeModel: row.makeModel,
-            homeBaseAirport: row.homeBaseAirport,
-            pilotId,
-          },
-        });
-        summary.aircraftCreated += 1;
       }
+
+      await prisma.aircraft.create({
+        data: {
+          nNumber: row.nNumber,
+          makeModel: row.makeModel,
+          homeBaseAirport: row.homeBaseAirport,
+          pilotId,
+        },
+      });
+      summary.aircraftCreated += 1;
     } catch (error) {
       summary.rowsSkipped += 1;
       summary.errors.push({

@@ -20,10 +20,9 @@ function humanizeCategory(category: string): string {
 
 /**
  * Checks one aircraft against mission criteria and returns the list of
- * reasons it falls short (empty array = full match). This is the core of
- * "aircraft capability matching": category, useful load, range, and whether
- * the aircraft's own runway requirement fits within what's available at the
- * mission's staging/destination airport.
+ * reasons it falls short (empty array = full match): category, useful load,
+ * range, and whether the aircraft's own runway requirement fits within what's
+ * available at the mission's staging/destination airport.
  */
 function evaluateAircraft(aircraft: Aircraft, criteria: MatchCriteria): string[] {
   const reasons: string[] = [];
@@ -78,7 +77,9 @@ export async function findMatchingAircraft(criteria: MatchCriteria): Promise<Air
     if (a.isFullMatch !== b.isFullMatch) {
       return a.isFullMatch ? -1 : 1;
     }
-    return a.aircraft.nNumber.localeCompare(b.aircraft.nNumber);
+    const aKey = a.aircraft.nNumber ?? a.aircraft.makeModel;
+    const bKey = b.aircraft.nNumber ?? b.aircraft.makeModel;
+    return aKey.localeCompare(bKey);
   });
 }
 
