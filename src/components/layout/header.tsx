@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
@@ -16,7 +17,15 @@ export function Header({ userName, isAdmin }: HeaderProps): JSX.Element {
           <span className="font-medium text-silver-100">{userName}</span>
         </p>
       </div>
-      <SignOutButton />
+      <div className="flex items-center gap-4">
+        <Link
+          href="/dashboard/account"
+          className="text-sm font-medium text-silver-300 hover:text-silver-100"
+        >
+          Account
+        </Link>
+        <SignOutButton />
+      </div>
     </header>
   );
 }

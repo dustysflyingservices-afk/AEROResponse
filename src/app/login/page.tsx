@@ -36,7 +36,7 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface px-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm rounded-lg border border-surface-border bg-surface-raised p-8 shadow-lg">
         <div className="flex justify-center">
           <div className="rounded-lg bg-[#ebf5ff] p-4">

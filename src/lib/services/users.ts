@@ -6,6 +6,10 @@ import {
   type CreateUserInput,
   type UpdateUserInput,
 } from "@/lib/validation/user";
+import {
+  changePasswordSchema,
+  type ChangePasswordInput,
+} from "@/lib/validation/account";
 import type { User } from "@prisma/client";
 
 export type SafeUser = Omit<User, "passwordHash">;
@@ -102,4 +106,36 @@ export async function deleteUser(id: string): Promise<void> {
   }
 
   await prisma.user.delete({ where: { id } });
+}
+
+/**
+ * Self-service password change for the currently logged-in user. Requires
+ * the correct current password before allowing a change, so a hijacked or
+ * left-open session can't be used to lock the real owner out.
+ */
+export async function changeOwnPassword(
+  userId: string,
+  input: ChangePasswordInput
+): Promise<void> {
+  const data = changePasswordSchema.parse(input);
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  const isCurrentPasswordCorrect = await bcrypt.compare(
+    data.currentPassword,
+    user.passwordHash
+  );
+  if (!isCurrentPasswordCorrect) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  const passwordHash = await bcrypt.hash(data.newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
 }
