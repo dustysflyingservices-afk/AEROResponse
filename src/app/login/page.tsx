@@ -39,17 +39,18 @@ export default function LoginPage(): JSX.Element {
     <main className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm rounded-lg border border-surface-border bg-surface-raised p-8 shadow-lg">
         <div className="flex justify-center">
-          <Image
-            src="/logo.jpg"
-            alt="AeroResponse"
-            width={120}
-            height={120}
-            className="rounded-md"
-            priority
-          />
+          <div className="rounded-lg bg-[#ebf5ff] p-4">
+            <Image
+              src="/logo.png"
+              alt="Props for a Purpose"
+              width={200}
+              height={160}
+              priority
+            />
+          </div>
         </div>
         <p className="mt-4 text-center text-xs uppercase tracking-widest text-silver-400">
-          Precise. Ready. Reliable.
+          Soaring to Serve.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -96,6 +97,7 @@ export default function LoginPage(): JSX.Element {
           </button>
         </form>
       </div>
+      <p className="mt-4 text-center text-xs text-silver-500">Powered by AeroResponse</p>
     </main>
   );
 }

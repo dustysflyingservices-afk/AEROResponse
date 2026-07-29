@@ -20,6 +20,9 @@ export default async function DashboardLayout({
       <div className="flex flex-1 flex-col">
         <Header userName={session.user.name ?? session.user.email ?? "Ops"} />
         <main className="flex-1 bg-surface p-6">{children}</main>
+        <footer className="border-t border-surface-border px-6 py-3 text-center text-xs text-silver-500">
+          Powered by AeroResponse
+        </footer>
       </div>
     </div>
   );

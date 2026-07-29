@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AeroResponse",
+  title: "Props for a Purpose",
   description: "Volunteer pilot and mission coordination platform.",
   icons: {
-    icon: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
