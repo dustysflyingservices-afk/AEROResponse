@@ -71,7 +71,7 @@ const HEADER_ALIASES: Record<string, string[]> = {
     "usefulload",
     "usefulloadlb",
   ],
-  rangeNm: ["rangenm", "range", "rangemiles"],
+  rangeNm: ["estimatedrangenm", "estimatedrange", "rangenm", "range", "rangemiles"],
   minRunwayFt: ["minrunwayft", "minrunway", "runwayft", "runwayrequired"],
 };
 
@@ -107,7 +107,20 @@ function buildHeaderMap(sampleRow: RosterRow): Record<string, string> {
   }));
 
   for (const [canonicalField, aliases] of Object.entries(HEADER_ALIASES)) {
-    const match = normalizedHeaders.find((header) => aliases.includes(header.normalized));
+    // Try an exact match first (e.g. header "Range" === alias "range").
+    let match = normalizedHeaders.find((header) => aliases.includes(header.normalized));
+
+    // Fall back to substring matching so header wording variations - an
+    // "Estimated " prefix, a "(nm)" unit suffix, etc. - don't silently break
+    // the mapping. Longer aliases are checked first so a specific alias like
+    // "usefulload" wins over any shorter, more generic overlap.
+    if (!match) {
+      const sortedAliases = [...aliases].sort((a, b) => b.length - a.length);
+      match = normalizedHeaders.find((header) =>
+        sortedAliases.some((alias) => header.normalized.includes(alias))
+      );
+    }
+
     if (match) {
       map[canonicalField] = match.original;
     }
