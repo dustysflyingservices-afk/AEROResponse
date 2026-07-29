@@ -50,7 +50,7 @@ export default function LoginPage(): JSX.Element {
           </div>
         </div>
         <p className="mt-4 text-center text-xs uppercase tracking-widest text-silver-400">
-          Soaring to Serve.
+          Soaring to Serve
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">

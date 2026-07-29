@@ -1,8 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { NAV_ITEMS } from "@/lib/constants/nav";
+import { getNavItems } from "@/lib/constants/nav";
 
-export function Sidebar(): JSX.Element {
+interface SidebarProps {
+  isAdmin: boolean;
+}
+
+export function Sidebar({ isAdmin }: SidebarProps): JSX.Element {
+  const navItems = getNavItems(isAdmin);
+
   return (
     <aside className="hidden w-56 shrink-0 border-r border-surface-border bg-surface-raised md:block">
       <div className="px-4 py-4">
@@ -18,7 +24,7 @@ export function Sidebar(): JSX.Element {
         </div>
       </div>
       <nav className="px-2">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
