@@ -164,8 +164,13 @@ export default async function MissionsPage({
             ) : (
               missions.map((mission) => (
                 <tr key={mission.id}>
-                  <td className="max-w-xs truncate px-4 py-3 text-sm font-medium text-silver-100">
-                    {mission.missionDescription}
+                  <td className="max-w-xs truncate px-4 py-3 text-sm font-medium">
+                    <Link
+                      href={`/dashboard/missions/${mission.id}/edit`}
+                      className="text-brand-400 hover:text-brand-500 hover:underline"
+                    >
+                      {mission.missionDescription}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-silver-300">
                     {mission.stagingAirport}
@@ -184,18 +189,10 @@ export default async function MissionsPage({
                     {MISSION_STATUS_LABELS[mission.status]}
                   </td>
                   <td className="px-4 py-3 text-right text-sm">
-                    <div className="flex justify-end gap-4">
-                      <Link
-                        href={`/dashboard/missions/${mission.id}/edit`}
-                        className="font-medium text-silver-300 hover:text-silver-100"
-                      >
-                        Edit
-                      </Link>
-                      <DeleteButton
-                        action={deleteMissionAction.bind(null, mission.id)}
-                        confirmMessage="Delete this mission? This cannot be undone."
-                      />
-                    </div>
+                    <DeleteButton
+                      action={deleteMissionAction.bind(null, mission.id)}
+                      confirmMessage="Delete this mission? This cannot be undone."
+                    />
                   </td>
                 </tr>
               ))

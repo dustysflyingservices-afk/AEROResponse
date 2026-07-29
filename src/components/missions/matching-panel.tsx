@@ -1,4 +1,8 @@
-import { criteriaFromMission, findMatchingAircraft } from "@/lib/services/matching";
+import {
+  criteriaFromMission,
+  findMatchingAircraft,
+  findPilotsWithoutAircraft,
+} from "@/lib/services/matching";
 import { AIRCRAFT_CATEGORY_LABELS } from "@/lib/constants/aircraft-category";
 import { MatchResults, type MatchRow } from "@/components/missions/match-results";
 import type { Mission } from "@prisma/client";
@@ -15,7 +19,10 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
     Boolean(criteria.minRangeNm) ||
     Boolean(criteria.minRunwayFt);
 
-  const matches = await findMatchingAircraft(criteria);
+  const [matches, unassignedPilots] = await Promise.all([
+    findMatchingAircraft(criteria),
+    findPilotsWithoutAircraft(),
+  ]);
 
   // Flatten to plain, JSON-safe rows before handing off to the client
   // component (no Date objects or Prisma model instances need to cross the
@@ -32,6 +39,20 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
     qualifications: match.aircraft.pilot.airmenRatings,
     isFullMatch: match.isFullMatch,
     reasons: match.reasons,
+  }));
+
+  const unassignedPilotRows: MatchRow[] = unassignedPilots.map((pilot) => ({
+    aircraftId: `pilot-${pilot.id}`,
+    nNumber: null,
+    makeModel: "No aircraft on file",
+    categoryLabel: "—",
+    homeBaseAirport: null,
+    pilotName: `${pilot.firstName} ${pilot.lastName}`.trim(),
+    pilotEmail: pilot.email,
+    pilotPhone: pilot.phone,
+    qualifications: pilot.airmenRatings,
+    isFullMatch: false,
+    reasons: [],
   }));
 
   const emailTemplate = {
@@ -68,7 +89,7 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
           : "This mission has no structured requirements set, so every aircraft on file is shown. Add requirements under \u201cWhat\u201d for a filtered match."}
       </p>
 
-      <MatchResults rows={rows} emailTemplate={emailTemplate} />
+      <MatchResults rows={rows} unassignedPilotRows={unassignedPilotRows} emailTemplate={emailTemplate} />
     </div>
   );
 }

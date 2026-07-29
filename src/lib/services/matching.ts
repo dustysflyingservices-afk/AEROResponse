@@ -91,3 +91,17 @@ export function criteriaFromMission(mission: Mission): MatchCriteria {
     minRunwayFt: mission.minRunwayFt,
   };
 }
+
+/**
+ * Pilots with no aircraft on file at all. These can't be evaluated against a
+ * mission's aircraft requirements (no capability data exists), but they're
+ * still real, contactable pilots - e.g. a right-seat/safety pilot, or
+ * someone whose aircraft just hasn't been entered yet - so they're surfaced
+ * separately rather than being silently excluded from the mission page.
+ */
+export async function findPilotsWithoutAircraft(): Promise<Pilot[]> {
+  return prisma.pilot.findMany({
+    where: { aircraft: { none: {} } },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+}

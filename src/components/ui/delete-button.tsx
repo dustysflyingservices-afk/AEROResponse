@@ -17,7 +17,7 @@ export function DeleteButton({ action, confirmMessage }: DeleteButtonProps): JSX
     >
       <button
         type="submit"
-        className="text-sm font-medium text-brand-400 hover:text-brand-500"
+        className="text-sm font-medium text-red-500 hover:text-red-400"
       >
         Delete
       </button>

@@ -18,10 +18,17 @@ export interface MatchRow {
 
 interface MatchResultsProps {
   rows: MatchRow[];
+  unassignedPilotRows: MatchRow[];
   emailTemplate: { subject: string; body: string };
 }
 
-export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.Element {
+export function MatchResults({
+  rows,
+  unassignedPilotRows,
+  emailTemplate,
+}: MatchResultsProps): JSX.Element {
+  const allRows = [...rows, ...unassignedPilotRows];
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(rows.filter((row) => row.isFullMatch).map((row) => row.aircraftId))
   );
@@ -32,15 +39,15 @@ export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.El
 
   const selectedEmails = useMemo(() => {
     const emails = new Set<string>();
-    for (const row of rows) {
+    for (const row of allRows) {
       if (selectedIds.has(row.aircraftId) && row.pilotEmail) {
         emails.add(row.pilotEmail);
       }
     }
     return Array.from(emails);
-  }, [rows, selectedIds]);
+  }, [allRows, selectedIds]);
 
-  const selectedCount = rows.filter((row) => selectedIds.has(row.aircraftId)).length;
+  const selectedCount = allRows.filter((row) => selectedIds.has(row.aircraftId)).length;
   const emailList = selectedEmails.join(", ");
 
   function toggleRow(aircraftId: string): void {
@@ -79,10 +86,10 @@ export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.El
     setCopied(true);
   }
 
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     return (
       <p className="mt-4 text-sm text-silver-500">
-        No aircraft in the database yet. Add a pilot and their aircraft first.
+        No pilots or aircraft in the database yet. Add a pilot first.
       </p>
     );
   }
@@ -164,6 +171,24 @@ export function MatchResults({ rows, emailTemplate }: MatchResultsProps): JSX.El
             showReasons
           />
         ) : null}
+
+        {unassignedPilotRows.length > 0 ? (
+          <div>
+            <MatchGroup
+              title={`Available Pilots \u2013 No Aircraft on File (${unassignedPilotRows.length})`}
+              rows={unassignedPilotRows}
+              selectedIds={selectedIds}
+              onToggleRow={toggleRow}
+              onSelectGroup={selectGroup}
+              hideAircraftColumn
+            />
+            <p className="mt-2 text-xs text-silver-500">
+              These pilots don&apos;t have an aircraft on file yet - could be a
+              right-seat/safety pilot, or someone whose plane just hasn&apos;t been
+              entered. Not evaluated against this mission&apos;s requirements.
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -176,6 +201,7 @@ function MatchGroup({
   onToggleRow,
   onSelectGroup,
   showReasons = false,
+  hideAircraftColumn = false,
 }: {
   title: string;
   rows: MatchRow[];
@@ -183,6 +209,7 @@ function MatchGroup({
   onToggleRow: (aircraftId: string) => void;
   onSelectGroup: (group: MatchRow[], select: boolean) => void;
   showReasons?: boolean;
+  hideAircraftColumn?: boolean;
 }): JSX.Element {
   return (
     <div>
@@ -212,11 +239,13 @@ function MatchGroup({
           <thead className="bg-surface-raised">
             <tr>
               <th className="w-8 px-4 py-2" />
+              {hideAircraftColumn ? null : (
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
+                  Aircraft
+                </th>
+              )}
               <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
-                Aircraft
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
-                Pilot / Owner
+                Pilot
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
                 Contact
@@ -243,13 +272,17 @@ function MatchGroup({
                     aria-label={`Include ${row.pilotName} in the email list`}
                   />
                 </td>
-                <td className="px-4 py-3 text-sm">
-                  <p className="font-medium text-silver-100">{row.nNumber ?? row.makeModel}</p>
-                  <p className="text-xs text-silver-500">
-                    {row.makeModel} &middot; {row.categoryLabel}
-                    {row.homeBaseAirport ? ` \u00b7 ${row.homeBaseAirport}` : ""}
-                  </p>
-                </td>
+                {hideAircraftColumn ? null : (
+                  <td className="px-4 py-3 text-sm">
+                    <p className="font-medium text-silver-100">
+                      {row.nNumber ?? row.makeModel}
+                    </p>
+                    <p className="text-xs text-silver-500">
+                      {row.makeModel} &middot; {row.categoryLabel}
+                      {row.homeBaseAirport ? ` \u00b7 ${row.homeBaseAirport}` : ""}
+                    </p>
+                  </td>
+                )}
                 <td className="px-4 py-3 text-sm text-silver-100">{row.pilotName}</td>
                 <td className="px-4 py-3 text-sm text-silver-300">
                   {row.pilotEmail ? <p>{row.pilotEmail}</p> : null}
