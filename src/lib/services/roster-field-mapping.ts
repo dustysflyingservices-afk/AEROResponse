@@ -49,14 +49,16 @@ export function normalizeFieldKey(text: string): string {
 }
 
 /**
- * Given a list of available field labels (spreadsheet headers, or a
- * webhook's field names), returns which label matches each canonical field
- * we care about. Tries an exact match first, then falls back to substring
- * matching (longest alias first) so label wording variations - "Estimated "
- * prefixes, unit suffixes, a form's own phrasing - don't silently break the
- * mapping.
+ * Given a list of available field labels and a table of canonical field ->
+ * possible label aliases, returns which label matches each canonical field.
+ * Tries an exact match first, then falls back to substring matching
+ * (longest alias first) so label wording variations - "Estimated " prefixes,
+ * unit suffixes, a form's own phrasing - don't silently break the mapping.
  */
-export function buildFieldMap(labels: string[]): Record<string, string> {
+export function buildFieldMapFromAliases(
+  labels: string[],
+  aliasTable: Record<string, string[]>
+): Record<string, string> {
   const normalized = labels.map((label) => ({
     original: label,
     normalized: normalizeFieldKey(label),
@@ -64,7 +66,7 @@ export function buildFieldMap(labels: string[]): Record<string, string> {
 
   const map: Record<string, string> = {};
 
-  for (const [canonicalField, aliases] of Object.entries(FIELD_ALIASES)) {
+  for (const [canonicalField, aliases] of Object.entries(aliasTable)) {
     let match = normalized.find((label) => aliases.includes(label.normalized));
 
     if (!match) {
@@ -80,4 +82,13 @@ export function buildFieldMap(labels: string[]): Record<string, string> {
   }
 
   return map;
+}
+
+/**
+ * Given a list of available field labels (spreadsheet headers, or a
+ * webhook's field names), returns which label matches each canonical pilot
+ * field we care about. See buildFieldMapFromAliases for the matching rules.
+ */
+export function buildFieldMap(labels: string[]): Record<string, string> {
+  return buildFieldMapFromAliases(labels, FIELD_ALIASES);
 }

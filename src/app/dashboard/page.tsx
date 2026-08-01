@@ -6,7 +6,7 @@ import {
   MISSION_STATUS_LABELS,
 } from "@/lib/constants/mission";
 
-const ACTIVE_STATUSES = ["OPEN", "ASSIGNED", "IN_PROGRESS"] as const;
+const ACTIVE_STATUSES = ["NEEDS_REVIEW", "OPEN", "ASSIGNED", "IN_PROGRESS"] as const;
 
 export default async function DashboardPage(): Promise<JSX.Element> {
   const [activeMissions, pilotCount, aircraftCount, organizationCount] = await Promise.all([
@@ -78,7 +78,7 @@ export default async function DashboardPage(): Promise<JSX.Element> {
                       {mission.missionDescription}
                     </p>
                     <p className="mt-0.5 text-xs text-silver-500">
-                      Staging: {mission.stagingAirport} &middot;{" "}
+                      Staging: {mission.stagingAirport ?? "TBD"} &middot;{" "}
                       {MISSION_STATUS_LABELS[mission.status]}
                     </p>
                   </div>

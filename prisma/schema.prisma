@@ -106,6 +106,7 @@ enum MissionPriority {
 }
 
 enum MissionStatus {
+  NEEDS_REVIEW
   OPEN
   ASSIGNED
   IN_PROGRESS
@@ -139,8 +140,10 @@ model Mission {
   responseNeededBy  DateTime?
   estimatedDuration String?
 
-  // WHERE
-  stagingAirport      String
+  // WHERE - stagingAirport is optional since public intake forms (e.g. a
+  // "Flight Request" submitted by whoever needs help) don't collect it; Ops
+  // fills it in when they review and activate the mission.
+  stagingAirport      String?
   destinationAirports String[]
 
   // WHY

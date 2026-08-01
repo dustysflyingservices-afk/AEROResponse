@@ -10,6 +10,7 @@ export const MISSION_PRIORITY_LABELS: Record<MissionPriority, string> = {
 };
 
 export const MISSION_STATUSES = [
+  "NEEDS_REVIEW",
   "OPEN",
   "ASSIGNED",
   "IN_PROGRESS",
@@ -18,6 +19,7 @@ export const MISSION_STATUSES = [
 ] as const;
 
 export const MISSION_STATUS_LABELS: Record<MissionStatus, string> = {
+  NEEDS_REVIEW: "Needs Review",
   OPEN: "Open",
   ASSIGNED: "Assigned",
   IN_PROGRESS: "In Progress",

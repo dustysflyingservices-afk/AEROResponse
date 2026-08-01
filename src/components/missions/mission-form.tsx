@@ -252,7 +252,7 @@ export function MissionForm({
             name="stagingAirport"
             required
             placeholder="KAPA"
-            defaultValue={mission?.stagingAirport}
+            defaultValue={mission?.stagingAirport ?? ""}
           />
         </div>
         <div>

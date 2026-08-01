@@ -173,7 +173,7 @@ export default async function MissionsPage({
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-silver-300">
-                    {mission.stagingAirport}
+                    {mission.stagingAirport ?? "TBD"}
                   </td>
                   <td className="px-4 py-3 text-sm text-silver-300">
                     {mission.organization?.name ?? "—"}
