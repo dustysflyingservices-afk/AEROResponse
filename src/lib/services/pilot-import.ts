@@ -1,4 +1,11 @@
-import { prisma } from "@/lib/db/prisma";
+import { buildFieldMap } from "@/lib/services/roster-field-mapping";
+import {
+  createUpsertContext,
+  parseAircraftTypeValue,
+  splitFullName,
+  upsertPilotRow,
+  type NormalizedPilotRow,
+} from "@/lib/services/pilot-upsert";
 
 export interface RosterRow {
   [header: string]: unknown;
@@ -16,117 +23,6 @@ export interface ImportSummary {
   aircraftUpdated: number;
   rowsSkipped: number;
   errors: ImportRowError[];
-}
-
-interface NormalizedRow {
-  rowNumber: number;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  phone: string | null;
-  street1: string | null;
-  city: string | null;
-  state: string | null;
-  zipCode: string | null;
-  picTotalTime: string | null;
-  airmenRatings: string | null;
-  motivation: string | null;
-  makeModel: string | null;
-  nNumber: string | null;
-  homeBaseAirport: string | null;
-  usefulLoadLbs: number | null;
-  rangeNm: number | null;
-  minRunwayFt: number | null;
-}
-
-// Maps many possible spreadsheet header spellings to our canonical field
-// names, matching both the Volunteer Pilot Interest Form's wording and
-// common variants. Headers are compared after lowercasing and stripping
-// non-alphanumeric characters, so "Estimated Useful Load (lb)" normalizes to
-// "estimatedusefulloadlb".
-const HEADER_ALIASES: Record<string, string[]> = {
-  firstName: ["firstname", "first"],
-  lastName: ["lastname", "last"],
-  fullName: ["name", "pilotname", "fullname", "pilot"],
-  email: ["email", "emailaddress", "e-mail"],
-  phone: ["phone", "phonenumber", "cell", "mobile", "cellphone"],
-  street1: ["streetaddress", "address", "street"],
-  city: ["city"],
-  state: ["state", "stateprovince", "province"],
-  zipCode: ["postalzipcode", "zipcode", "zip", "postalcode"],
-  picTotalTime: ["pictotaltime", "totaltime", "flighttime"],
-  airmenRatings: ["airmenratings", "ratings", "qualifications", "certifications"],
-  motivation: [
-    "whatmotivatesyoutovolunteerwithourorganization",
-    "motivation",
-    "whyvolunteer",
-  ],
-  makeModel: ["aircrafttype", "aircraft", "aircraftmakemodel", "makemodel"],
-  nNumber: ["nnumber", "tailnumber", "registration", "regnumber"],
-  homeBaseAirport: ["homebaseairport", "homebase", "baseairport", "base", "airport"],
-  usefulLoadLbs: [
-    "estimatedusefulloadlb",
-    "estimatedusefulload",
-    "usefulloadlbs",
-    "usefulload",
-    "usefulloadlb",
-  ],
-  rangeNm: ["estimatedrangenm", "estimatedrange", "rangenm", "range", "rangemiles"],
-  minRunwayFt: ["minrunwayft", "minrunway", "runwayft", "runwayrequired"],
-};
-
-// Aircraft Type values that mean "this pilot doesn't own/fly a specific
-// aircraft" rather than an actual aircraft - these should never create an
-// Aircraft record.
-const NON_AIRCRAFT_VALUES = new Set([
-  "non owner",
-  "nonowner",
-  "none",
-  "n/a",
-  "na",
-  "no aircraft",
-  "renter",
-  "student",
-  "tbd",
-  "unknown",
-]);
-
-// Matches a US N-Number: N followed by 1-5 digits and up to 2 trailing
-// letters (e.g. N4323X, N12345).
-const N_NUMBER_PATTERN = /\bN\d{1,5}[A-Z]{0,2}\b/i;
-
-function normalizeHeaderKey(header: string): string {
-  return header.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function buildHeaderMap(sampleRow: RosterRow): Record<string, string> {
-  const map: Record<string, string> = {};
-  const normalizedHeaders = Object.keys(sampleRow).map((header) => ({
-    original: header,
-    normalized: normalizeHeaderKey(header),
-  }));
-
-  for (const [canonicalField, aliases] of Object.entries(HEADER_ALIASES)) {
-    // Try an exact match first (e.g. header "Range" === alias "range").
-    let match = normalizedHeaders.find((header) => aliases.includes(header.normalized));
-
-    // Fall back to substring matching so header wording variations - an
-    // "Estimated " prefix, a "(nm)" unit suffix, etc. - don't silently break
-    // the mapping. Longer aliases are checked first so a specific alias like
-    // "usefulload" wins over any shorter, more generic overlap.
-    if (!match) {
-      const sortedAliases = [...aliases].sort((a, b) => b.length - a.length);
-      match = normalizedHeaders.find((header) =>
-        sortedAliases.some((alias) => header.normalized.includes(alias))
-      );
-    }
-
-    if (match) {
-      map[canonicalField] = match.original;
-    }
-  }
-
-  return map;
 }
 
 function readCell(row: RosterRow, header: string | undefined): string | null {
@@ -150,58 +46,18 @@ function readNumberCell(row: RosterRow, header: string | undefined): number | nu
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
 }
 
-function splitFullName(fullName: string): { firstName: string; lastName: string } {
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length === 1) {
-    return { firstName: parts[0], lastName: "" };
-  }
-  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
-}
-
-/**
- * Splits a combined "Aircraft Type" cell like "Piper Archer II, N4323X" into
- * separate make/model and N-Number when there's no dedicated N-Number
- * column. Also filters out placeholder values ("Non owner", "N/A", etc.)
- * that mean the pilot doesn't have a specific aircraft on file.
- */
-function parseAircraftTypeCell(
-  rawMakeModel: string | null
-): { makeModel: string | null; nNumber: string | null } {
-  if (!rawMakeModel) {
-    return { makeModel: null, nNumber: null };
-  }
-
-  if (NON_AIRCRAFT_VALUES.has(rawMakeModel.trim().toLowerCase())) {
-    return { makeModel: null, nNumber: null };
-  }
-
-  const match = rawMakeModel.match(N_NUMBER_PATTERN);
-  if (!match) {
-    return { makeModel: rawMakeModel, nNumber: null };
-  }
-
-  const nNumber = match[0].toUpperCase();
-  const makeModel = rawMakeModel
-    .replace(match[0], "")
-    .replace(/,\s*$/, "")
-    .replace(/^\s*,/, "")
-    .trim();
-
-  return { makeModel: makeModel.length > 0 ? makeModel : rawMakeModel, nNumber };
-}
-
 function normalizeRows(rows: RosterRow[]): {
-  normalized: NormalizedRow[];
+  normalized: Array<{ rowNumber: number; row: NormalizedPilotRow }>;
   errors: ImportRowError[];
 } {
   const errors: ImportRowError[] = [];
-  const normalized: NormalizedRow[] = [];
+  const normalized: Array<{ rowNumber: number; row: NormalizedPilotRow }> = [];
 
   if (rows.length === 0) {
     return { normalized, errors };
   }
 
-  const headerMap = buildHeaderMap(rows[0]);
+  const headerMap = buildFieldMap(Object.keys(rows[0]));
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2; // account for header row + 1-indexing
@@ -225,27 +81,29 @@ function normalizeRows(rows: RosterRow[]): {
 
     const rawMakeModel = readCell(row, headerMap.makeModel);
     const explicitNNumber = readCell(row, headerMap.nNumber)?.toUpperCase() ?? null;
-    const { makeModel, nNumber: parsedNNumber } = parseAircraftTypeCell(rawMakeModel);
+    const { makeModel, nNumber: parsedNNumber } = parseAircraftTypeValue(rawMakeModel);
 
     normalized.push({
       rowNumber,
-      firstName,
-      lastName: lastName ?? "",
-      email: readCell(row, headerMap.email)?.toLowerCase() ?? null,
-      phone: readCell(row, headerMap.phone),
-      street1: readCell(row, headerMap.street1),
-      city: readCell(row, headerMap.city),
-      state: readCell(row, headerMap.state),
-      zipCode: readCell(row, headerMap.zipCode),
-      picTotalTime: readCell(row, headerMap.picTotalTime),
-      airmenRatings: readCell(row, headerMap.airmenRatings),
-      motivation: readCell(row, headerMap.motivation),
-      makeModel,
-      nNumber: explicitNNumber ?? parsedNNumber,
-      homeBaseAirport: readCell(row, headerMap.homeBaseAirport),
-      usefulLoadLbs: readNumberCell(row, headerMap.usefulLoadLbs),
-      rangeNm: readNumberCell(row, headerMap.rangeNm),
-      minRunwayFt: readNumberCell(row, headerMap.minRunwayFt),
+      row: {
+        firstName,
+        lastName: lastName ?? "",
+        email: readCell(row, headerMap.email)?.toLowerCase() ?? null,
+        phone: readCell(row, headerMap.phone),
+        street1: readCell(row, headerMap.street1),
+        city: readCell(row, headerMap.city),
+        state: readCell(row, headerMap.state),
+        zipCode: readCell(row, headerMap.zipCode),
+        picTotalTime: readCell(row, headerMap.picTotalTime),
+        airmenRatings: readCell(row, headerMap.airmenRatings),
+        motivation: readCell(row, headerMap.motivation),
+        makeModel,
+        nNumber: explicitNNumber ?? parsedNNumber,
+        homeBaseAirport: readCell(row, headerMap.homeBaseAirport),
+        usefulLoadLbs: readNumberCell(row, headerMap.usefulLoadLbs),
+        rangeNm: readNumberCell(row, headerMap.rangeNm),
+        minRunwayFt: readNumberCell(row, headerMap.minRunwayFt),
+      },
     });
   });
 
@@ -253,16 +111,9 @@ function normalizeRows(rows: RosterRow[]): {
 }
 
 /**
- * Imports a volunteer pilot roster from parsed spreadsheet rows.
- *
- * Dedup rule: a pilot is matched first by email (case-insensitive), then by
- * exact case-insensitive name if no email is present. This means a pilot who
- * owns multiple aircraft - one row per aircraft in the source spreadsheet -
- * ends up as a single Pilot record with multiple linked Aircraft records,
- * rather than a duplicated pilot per row. Aircraft with an N-Number are
- * upserted by tail number; aircraft without one are always created fresh,
- * since there's no reliable key to match them on. Values like "Non owner" in
- * the Aircraft Type column are treated as "no aircraft", not as data.
+ * Imports a volunteer pilot roster from parsed spreadsheet rows. The actual
+ * per-row create/update logic lives in pilot-upsert.ts, shared with the
+ * Jotform webhook so both paths behave identically.
  */
 export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummary> {
   const { normalized, errors } = normalizeRows(rows);
@@ -276,123 +127,26 @@ export async function importPilotRoster(rows: RosterRow[]): Promise<ImportSummar
     errors: [...errors],
   };
 
-  const pilotIdByEmail = new Map<string, string>();
-  const pilotIdByName = new Map<string, string>();
+  const context = createUpsertContext();
 
-  for (const row of normalized) {
+  for (const { rowNumber, row } of normalized) {
     try {
-      let pilotId: string | null = null;
-
-      if (row.email) {
-        pilotId =
-          pilotIdByEmail.get(row.email) ??
-          (await prisma.pilot.findUnique({ where: { email: row.email } }))?.id ??
-          null;
-      }
-
-      const nameKey = `${row.firstName} ${row.lastName}`.trim().toLowerCase();
-
-      if (!pilotId) {
-        pilotId = pilotIdByName.get(nameKey) ?? null;
-
-        if (!pilotId && !row.email) {
-          const existingByName = await prisma.pilot.findFirst({
-            where: {
-              firstName: { equals: row.firstName, mode: "insensitive" },
-              lastName: { equals: row.lastName, mode: "insensitive" },
-            },
-          });
-          pilotId = existingByName?.id ?? null;
-        }
-      }
-
-      if (pilotId) {
-        summary.pilotsMatched += 1;
-        await prisma.pilot.update({
-          where: { id: pilotId },
-          data: {
-            phone: row.phone ?? undefined,
-            street1: row.street1 ?? undefined,
-            city: row.city ?? undefined,
-            state: row.state ?? undefined,
-            zipCode: row.zipCode ?? undefined,
-            picTotalTime: row.picTotalTime ?? undefined,
-            airmenRatings: row.airmenRatings ?? undefined,
-            motivation: row.motivation ?? undefined,
-          },
-        });
-      } else {
-        const created = await prisma.pilot.create({
-          data: {
-            firstName: row.firstName,
-            lastName: row.lastName,
-            email: row.email,
-            phone: row.phone,
-            street1: row.street1,
-            city: row.city,
-            state: row.state,
-            zipCode: row.zipCode,
-            picTotalTime: row.picTotalTime,
-            airmenRatings: row.airmenRatings,
-            motivation: row.motivation,
-          },
-        });
-        pilotId = created.id;
+      const result = await upsertPilotRow(row, context);
+      if (result.pilotCreated) {
         summary.pilotsCreated += 1;
+      } else {
+        summary.pilotsMatched += 1;
       }
-
-      pilotIdByName.set(nameKey, pilotId);
-      if (row.email) {
-        pilotIdByEmail.set(row.email, pilotId);
+      if (result.aircraftCreated) {
+        summary.aircraftCreated += 1;
       }
-
-      if (!row.makeModel) {
-        // Pilot-only row (no aircraft info, or a "Non owner" style value).
-        continue;
+      if (result.aircraftUpdated) {
+        summary.aircraftUpdated += 1;
       }
-
-      const aircraftData = {
-        makeModel: row.makeModel,
-        homeBaseAirport: row.homeBaseAirport,
-        usefulLoadLbs: row.usefulLoadLbs,
-        rangeNm: row.rangeNm,
-        minRunwayFt: row.minRunwayFt,
-      };
-
-      if (row.nNumber) {
-        const existingAircraft = await prisma.aircraft.findUnique({
-          where: { nNumber: row.nNumber },
-        });
-
-        if (existingAircraft) {
-          await prisma.aircraft.update({
-            where: { nNumber: row.nNumber },
-            data: {
-              makeModel: aircraftData.makeModel,
-              homeBaseAirport: aircraftData.homeBaseAirport ?? existingAircraft.homeBaseAirport,
-              usefulLoadLbs: aircraftData.usefulLoadLbs ?? existingAircraft.usefulLoadLbs,
-              rangeNm: aircraftData.rangeNm ?? existingAircraft.rangeNm,
-              minRunwayFt: aircraftData.minRunwayFt ?? existingAircraft.minRunwayFt,
-              pilotId,
-            },
-          });
-          summary.aircraftUpdated += 1;
-          continue;
-        }
-      }
-
-      await prisma.aircraft.create({
-        data: {
-          nNumber: row.nNumber,
-          ...aircraftData,
-          pilotId,
-        },
-      });
-      summary.aircraftCreated += 1;
     } catch (error) {
       summary.rowsSkipped += 1;
       summary.errors.push({
-        row: row.rowNumber,
+        row: rowNumber,
         message: error instanceof Error ? error.message : "Unknown error processing row.",
       });
     }
