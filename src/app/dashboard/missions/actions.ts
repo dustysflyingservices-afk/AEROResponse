@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createMission, deleteMission, updateMission } from "@/lib/services/missions";
+import {
+  assignAircraftToMission,
+  unassignAircraftFromMission,
+} from "@/lib/services/mission-assignments";
 import { formValue } from "@/lib/utils/form-data";
 
 function missionFieldsFromForm(formData: FormData) {
@@ -45,4 +49,17 @@ export async function updateMissionAction(id: string, formData: FormData): Promi
 export async function deleteMissionAction(id: string): Promise<void> {
   await deleteMission(id);
   revalidatePath("/dashboard/missions");
+}
+
+export async function toggleAircraftAssignmentAction(
+  missionId: string,
+  aircraftId: string,
+  assign: boolean
+): Promise<void> {
+  if (assign) {
+    await assignAircraftToMission(missionId, aircraftId);
+  } else {
+    await unassignAircraftFromMission(missionId, aircraftId);
+  }
+  revalidatePath(`/dashboard/missions/${missionId}/edit`);
 }

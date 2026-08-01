@@ -89,8 +89,11 @@ model Aircraft {
   usefulLoadLbs   Int?
   rangeNm         Int?
   minRunwayFt     Int?
+  icaoHex         String?          @unique
+  hexVerified     Boolean          @default(false)
   pilotId         String
   pilot           Pilot            @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  missionAssignments MissionAircraftAssignment[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -154,7 +157,27 @@ model Mission {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
+  assignments MissionAircraftAssignment[]
+
   @@index([status])
   @@index([organizationId])
   @@map("missions")
+}
+
+// ---------------------------------------------------------------------------
+// Which aircraft are actually assigned to fly a given mission. Driven by the
+// checkboxes on the mission's Matching Aircraft & Pilots panel - checking a
+// box both adds it to the mass-email list AND marks it assigned, which is
+// what the live tracking map on that mission page filters to.
+// ---------------------------------------------------------------------------
+model MissionAircraftAssignment {
+  id         String   @id @default(cuid())
+  missionId  String
+  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  aircraftId String
+  aircraft   Aircraft @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@unique([missionId, aircraftId])
+  @@map("mission_aircraft_assignments")
 }

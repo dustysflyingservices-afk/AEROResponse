@@ -4,6 +4,7 @@ export const NAV_ITEMS = [
   { href: "/dashboard/organizations", label: "Organizations" },
   { href: "/dashboard/pilots", label: "Pilots" },
   { href: "/dashboard/aircraft", label: "Aircraft" },
+  { href: "/dashboard/tracking", label: "Tracking" },
 ] as const;
 
 const ADMIN_NAV_ITEMS = [{ href: "/dashboard/users", label: "Users" }] as const;

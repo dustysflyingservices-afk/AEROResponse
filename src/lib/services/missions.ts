@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
 import { missionSchema, type MissionFormInput } from "@/lib/validation/mission";
+import { clearAssignmentsForMission } from "@/lib/services/mission-assignments";
 import type { AircraftCategory, Mission, Organization, Prisma } from "@prisma/client";
+
+const ENDED_STATUSES = new Set(["COMPLETED", "CANCELLED"]);
 
 export type MissionWithOrganization = Mission & { organization: Organization | null };
 
@@ -86,7 +89,13 @@ export async function createMission(input: MissionFormInput): Promise<Mission> {
 
 export async function updateMission(id: string, input: MissionFormInput): Promise<Mission> {
   const data = missionSchema.parse(input);
-  return prisma.mission.update({ where: { id }, data: buildMissionData(data) });
+  const mission = await prisma.mission.update({ where: { id }, data: buildMissionData(data) });
+
+  if (ENDED_STATUSES.has(mission.status)) {
+    await clearAssignmentsForMission(id);
+  }
+
+  return mission;
 }
 
 export async function deleteMission(id: string): Promise<void> {

@@ -53,3 +53,39 @@ export async function listAircraft(
 export async function deleteAircraft(id: string): Promise<void> {
   await prisma.aircraft.delete({ where: { id } });
 }
+
+const ICAO_HEX_PATTERN = /^[0-9A-F]{6}$/;
+
+/**
+ * Sets and verifies an aircraft's ICAO hex code for ADS-B tracking. This is
+ * a deliberate, explicit step rather than something derived automatically
+ * from the N-Number - an auto-derived hex that's wrong would silently track
+ * the wrong aircraft (or nothing) with no error surfaced anywhere.
+ */
+export async function verifyAircraftHex(id: string, rawHex: string): Promise<Aircraft> {
+  const hex = rawHex.trim().toUpperCase();
+
+  if (!ICAO_HEX_PATTERN.test(hex)) {
+    throw new Error("ICAO hex must be exactly 6 hexadecimal characters (0-9, A-F).");
+  }
+
+  const existing = await prisma.aircraft.findUnique({ where: { icaoHex: hex } });
+  if (existing && existing.id !== id) {
+    throw new Error(`That hex is already assigned to aircraft ${existing.nNumber ?? existing.id}.`);
+  }
+
+  return prisma.aircraft.update({
+    where: { id },
+    data: { icaoHex: hex, hexVerified: true },
+  });
+}
+
+export async function listTrackableAircraft(): Promise<AircraftWithPilot[]> {
+  return prisma.aircraft.findMany({
+    where: {
+      OR: [{ nNumber: { not: null } }, { icaoHex: { not: null } }],
+    },
+    include: { pilot: true },
+    orderBy: { nNumber: "asc" },
+  });
+}

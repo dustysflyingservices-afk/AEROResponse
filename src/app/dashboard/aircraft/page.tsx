@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { listAircraft } from "@/lib/services/aircraft";
-import { deleteAircraftAction } from "@/app/dashboard/aircraft/actions";
+import { deleteAircraftAction, verifyAircraftHexAction } from "@/app/dashboard/aircraft/actions";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { VerifyHexControl } from "@/components/aircraft/verify-hex-control";
 import {
   AIRCRAFT_CATEGORIES,
   AIRCRAFT_CATEGORY_LABELS,
@@ -132,13 +133,16 @@ export default async function AircraftPage({
               <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
                 Useful Load
               </th>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-silver-500">
+                Tracking
+              </th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-border bg-surface">
             {aircraft.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-sm text-silver-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-sm text-silver-500">
                   No aircraft on file yet. Add a pilot and their aircraft together.
                 </td>
               </tr>
@@ -160,6 +164,20 @@ export default async function AircraftPage({
                   </td>
                   <td className="px-4 py-3 text-sm text-silver-300">
                     {plane.usefulLoadLbs ? `${plane.usefulLoadLbs} lbs` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {plane.nNumber ? (
+                      <span className="rounded-full border border-brand-700 bg-brand-900 px-2 py-0.5 text-xs font-medium text-brand-400">
+                        Tracked by N-Number
+                      </span>
+                    ) : (
+                      <VerifyHexControl
+                        aircraftId={plane.id}
+                        currentHex={plane.icaoHex}
+                        isVerified={plane.hexVerified}
+                        action={verifyAircraftHexAction.bind(null, plane.id)}
+                      />
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm">
                     <div className="flex justify-end gap-4">

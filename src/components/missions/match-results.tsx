@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toggleAircraftAssignmentAction } from "@/app/dashboard/missions/actions";
 
 export interface MatchRow {
   aircraftId: string;
@@ -17,21 +18,35 @@ export interface MatchRow {
 }
 
 interface MatchResultsProps {
+  missionId: string;
   rows: MatchRow[];
   unassignedPilotRows: MatchRow[];
+  assignedAircraftIds: string[];
   emailTemplate: { subject: string; body: string };
 }
 
+// The "no aircraft on file" rows use a synthetic key (pilot-<id>) since
+// there's no real Aircraft record to assign/track - only real aircraft rows
+// get persisted as a mission assignment or shown on the tracking map.
+function isRealAircraftId(id: string): boolean {
+  return !id.startsWith("pilot-");
+}
+
 export function MatchResults({
+  missionId,
   rows,
   unassignedPilotRows,
+  assignedAircraftIds,
   emailTemplate,
 }: MatchResultsProps): JSX.Element {
   const allRows = [...rows, ...unassignedPilotRows];
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(rows.filter((row) => row.isFullMatch).map((row) => row.aircraftId))
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    if (assignedAircraftIds.length > 0) {
+      return new Set(assignedAircraftIds);
+    }
+    return new Set(rows.filter((row) => row.isFullMatch).map((row) => row.aircraftId));
+  });
   const [copied, setCopied] = useState(false);
 
   const fullMatches = rows.filter((row) => row.isFullMatch);
@@ -50,13 +65,24 @@ export function MatchResults({
   const selectedCount = allRows.filter((row) => selectedIds.has(row.aircraftId)).length;
   const emailList = selectedEmails.join(", ");
 
+  function persistAssignment(aircraftId: string, assign: boolean): void {
+    if (!isRealAircraftId(aircraftId)) {
+      return;
+    }
+    toggleAircraftAssignmentAction(missionId, aircraftId, assign).catch((err) => {
+      console.error("Failed to save aircraft assignment", err);
+    });
+  }
+
   function toggleRow(aircraftId: string): void {
     setSelectedIds((current) => {
       const next = new Set(current);
       if (next.has(aircraftId)) {
         next.delete(aircraftId);
+        persistAssignment(aircraftId, false);
       } else {
         next.add(aircraftId);
+        persistAssignment(aircraftId, true);
       }
       return next;
     });
@@ -72,6 +98,7 @@ export function MatchResults({
         } else {
           next.delete(row.aircraftId);
         }
+        persistAssignment(row.aircraftId, select);
       }
       return next;
     });
@@ -104,7 +131,9 @@ export function MatchResults({
               {selectedEmails.length} with an email on file
             </p>
             <p className="text-xs text-silver-500">
-              Check or uncheck rows below to build a mass-email list. Full matches are
+              Checking a row marks that aircraft assigned to this mission
+              (visible on the public Live Tracking map while the mission is
+              active) and adds it to the mass-email list. Full matches are
               pre-selected.
             </p>
           </div>

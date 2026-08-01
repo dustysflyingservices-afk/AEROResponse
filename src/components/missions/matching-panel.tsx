@@ -3,6 +3,7 @@ import {
   findMatchingAircraft,
   findPilotsWithoutAircraft,
 } from "@/lib/services/matching";
+import { getAssignedAircraftIds } from "@/lib/services/mission-assignments";
 import { AIRCRAFT_CATEGORY_LABELS } from "@/lib/constants/aircraft-category";
 import { MatchResults, type MatchRow } from "@/components/missions/match-results";
 import type { Mission } from "@prisma/client";
@@ -19,9 +20,10 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
     Boolean(criteria.minRangeNm) ||
     Boolean(criteria.minRunwayFt);
 
-  const [matches, unassignedPilots] = await Promise.all([
+  const [matches, unassignedPilots, assignedAircraftIds] = await Promise.all([
     findMatchingAircraft(criteria),
     findPilotsWithoutAircraft(),
+    getAssignedAircraftIds(mission.id),
   ]);
 
   // Flatten to plain, JSON-safe rows before handing off to the client
@@ -89,7 +91,13 @@ export async function MatchingPanel({ mission }: MatchingPanelProps): Promise<JS
           : "This mission has no structured requirements set, so every aircraft on file is shown. Add requirements under \u201cWhat\u201d for a filtered match."}
       </p>
 
-      <MatchResults rows={rows} unassignedPilotRows={unassignedPilotRows} emailTemplate={emailTemplate} />
+      <MatchResults
+        missionId={mission.id}
+        rows={rows}
+        unassignedPilotRows={unassignedPilotRows}
+        assignedAircraftIds={assignedAircraftIds}
+        emailTemplate={emailTemplate}
+      />
     </div>
   );
 }
