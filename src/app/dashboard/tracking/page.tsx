@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listTrackableAircraft } from "@/lib/services/aircraft";
-import { LiveTrackingMap } from "@/components/tracking/live-tracking-map";
+import { LiveTrackingMapLoader } from "@/components/tracking/live-tracking-map-loader";
 
 export default async function TrackingPage(): Promise<JSX.Element> {
   const trackableAircraft = await listTrackableAircraft();
@@ -24,7 +24,7 @@ export default async function TrackingPage(): Promise<JSX.Element> {
       </p>
 
       <div className="mt-6">
-        <LiveTrackingMap />
+        <LiveTrackingMapLoader />
       </div>
 
       <div className="mt-6">

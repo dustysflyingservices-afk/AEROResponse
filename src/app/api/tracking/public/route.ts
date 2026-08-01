@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getActivelyAssignedAircraftIds } from "@/lib/services/mission-assignments";
 
+// This serves live, constantly-changing aircraft positions - it must never
+// be statically generated/cached at build time (which would also fail the
+// build if migrations haven't run against the build-time database yet).
+export const dynamic = "force-dynamic";
+
 interface AirplanesLiveAircraft {
   hex: string;
   r?: string;

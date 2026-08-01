@@ -3,6 +3,8 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { listTrackableAircraft } from "@/lib/services/aircraft";
 import type { AircraftWithPilot } from "@/lib/services/aircraft";
 
+export const dynamic = "force-dynamic";
+
 interface AirplanesLiveAircraft {
   hex: string;
   r?: string; // registration, e.g. "N12345" - present when known
