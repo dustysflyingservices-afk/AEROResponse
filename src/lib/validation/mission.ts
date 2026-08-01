@@ -68,6 +68,15 @@ export const missionSchema = z.object({
   situationSummary: z.string().trim().optional().or(z.literal("")),
   priority: z.enum([...MISSION_PRIORITIES] as [string, ...string[]]).default("MEDIUM"),
   status: z.enum([...MISSION_STATUSES] as [string, ...string[]]).default("OPEN"),
+
+  // Opt-in per mission - whether this mission's assigned aircraft show up
+  // on the public live tracking map.
+  trackingEnabled: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value === "true"),
 });
 
 export type MissionInput = z.infer<typeof missionSchema>;

@@ -304,6 +304,26 @@ export function MissionForm({
             </FormSelect>
           </div>
         </div>
+
+        <div className="flex items-start gap-2 rounded-md border border-surface-border bg-surface-raised p-3">
+          <input
+            id="trackingEnabled"
+            name="trackingEnabled"
+            type="checkbox"
+            value="true"
+            defaultChecked={mission?.trackingEnabled ?? false}
+            className="mt-0.5 h-4 w-4 rounded border-surface-border bg-surface text-brand-500 focus:ring-brand-500"
+          />
+          <label htmlFor="trackingEnabled" className="text-sm text-silver-300">
+            <span className="font-medium text-silver-100">Enable live tracking</span>
+            <br />
+            <span className="text-xs text-silver-500">
+              When on, aircraft assigned to this mission (checked in the
+              Matching Aircraft &amp; Pilots panel below) will appear on the
+              public live tracking map. Off by default.
+            </span>
+          </label>
+        </div>
       </section>
 
       <FormError message={error ?? undefined} />

@@ -30,6 +30,7 @@ function missionFieldsFromForm(formData: FormData) {
     situationSummary: formValue(formData, "situationSummary"),
     priority: formValue(formData, "priority"),
     status: formValue(formData, "status"),
+    trackingEnabled: formValue(formData, "trackingEnabled"),
   };
 }
 

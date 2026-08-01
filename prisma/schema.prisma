@@ -153,6 +153,11 @@ model Mission {
   situationSummary String?
   priority         MissionPriority @default(MEDIUM)
 
+  // Public live tracking map only shows this mission's assigned aircraft
+  // when explicitly enabled here - tracking is opt-in per mission, not
+  // automatic for every mission that has aircraft assigned.
+  trackingEnabled Boolean @default(false)
+
   status    MissionStatus @default(OPEN)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

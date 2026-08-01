@@ -79,6 +79,7 @@ function buildMissionData(data: ReturnType<typeof missionSchema.parse>) {
     situationSummary: toNullable(data.situationSummary),
     priority: data.priority as Mission["priority"],
     status: data.status as Mission["status"],
+    trackingEnabled: data.trackingEnabled,
   };
 }
 
